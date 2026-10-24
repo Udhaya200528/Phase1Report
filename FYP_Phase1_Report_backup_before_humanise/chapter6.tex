@@ -1,0 +1,19 @@
+\chapter{CONCLUSION AND FUTURE WORK}
+\label{ch:conclusion}
+
+In conclusion, Phase I of the project has produced a complete, tested prediction pipeline for explainable visual commonsense reasoning about social interactions. The system accepts image, video and live-camera input, standardises it with OpenCV, performs visual understanding and language reasoning with SmolVLM, enriches the detected concepts with ConceptNet, and fuses the resulting evidence in a configurable social-interaction reasoning module.
+
+SmolVLM was fine-tuned on the VCR dataset with LoRA for 20 epochs, and the adapter from epoch 11 was selected on a held-out selection set. On separate held-out test questions it improves accuracy over the base model from 44.7\% to 58.7\% for \QtoA, from 41.3\% to 57.7\% for \QAtoR{} and from 15.3\% to 32.7\% for \QtoAR.
+
+The main output of Phase I is a structured prediction of the activity, relationship and intention, accompanied by confidence values, alternatives, evidence and a textual explanation. The modules are connected through a reusable \code{Phase1Pipeline}, the FastAPI--React interface demonstrates the complete flow, and all 23 automated tests pass. Phase I objectives 1--10 of Section~\ref{sec:objectives} have therefore been met, and the implementation provides a tested foundation for the second phase.
+
+As future work, Phase II will extend the system from prediction to verified explanation. Grad-CAM maps over the SmolVLM vision encoder will form a visual explanation path, and the concepts cited in the generated explanation will form an independent textual path. The Jaccard-based cross-modal consistency between the two concept sets (Equation~\ref{eq:cmc}) will be measured, faithfulness will be evaluated with the Insertion--Deletion metric and the Pointing Game, and the input frame, the predicted interaction, the three labels, the explanations and the consistency score will be presented in an explainability dashboard.
+
+In addition, the following improvements are planned:
+\begin{itemize}
+\item a labelled evaluation set for the activity, relationship and intention predictions of the full pipeline, together with an ablation study of the fusion weights and of each evidence source;
+\item measurement and improvement of confidence calibration;
+\item a larger VCR test set and training on more VCR questions;
+\item faster inference by batching the VLM prompts, to approach real-time video analysis;
+\item privacy safeguards that prevent the naming of individuals, and an audit of the predictions across demographic groups.
+\end{itemize}

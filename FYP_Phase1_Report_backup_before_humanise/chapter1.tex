@@ -1,0 +1,76 @@
+% Chapter 1
+
+\chapter{INTRODUCTION} % Write in your own chapter title
+\label{ch:intro}
+
+Visual understanding has progressed from object recognition to higher-level reasoning about actions, relationships, context and human intention. Social interactions are particularly challenging because their interpretation depends on several people at once, on their posture and gestures, on the objects they use, on their spatial arrangement and on the wider context. Visual Commonsense Reasoning (VCR) extends conventional recognition by requiring a model to infer information that is not explicitly visible in an image~\cite{zellers2019vcr}.
+
+This report presents the first phase of a system that performs such reasoning for social interactions and exposes the evidence behind each of its conclusions. The input is standardised using OpenCV, a lightweight vision-language model (SmolVLM) identifies the people, actions, gestures and setting of the scene, ConceptNet supplies everyday commonsense knowledge related to these concepts, and a reasoning module fuses the evidence to predict the activity, the relationship and the intention of the interaction. Each prediction is returned with a confidence value, ranked alternatives, supporting evidence and a textual explanation. SmolVLM is also fine-tuned on the VCR dataset with LoRA so that it reasons more reliably about people.
+
+\section{MOTIVATION}
+
+A photograph of two people shaking hands may show a business deal, a greeting between friends, a sporting gesture or a reconciliation after an argument. The pixels are much the same in each case; what differs is the context and the commonsense knowledge a person brings to the scene. Humans make these inferences effortlessly, but automated systems that make them are increasingly used in settings where the inference matters: assistive tools that describe scenes to visually impaired users, social robots that must decide how to approach people, and tools that summarise or moderate visual media.
+
+Two problems limit the use of current models in such settings. The first is \textbf{opacity}. High-accuracy VCR models select an answer from a set of options but do not show which visual cues or which pieces of world knowledge led to the choice. Large generative vision-language models do produce explanations, but these explanations are not guaranteed to reflect the evidence the model actually used, and they can describe details that are not present in the image. The second is \textbf{cost}. The strongest multimodal models have tens of billions of parameters and require data-centre hardware, which rules them out for on-device, privacy-preserving or low-cost deployment.
+
+This project is motivated by the need for a system that is both \emph{lightweight} and \emph{inspectable}: it should run on modest hardware, and every prediction about a social interaction should come with structured evidence -- the visual concepts detected, the commonsense facts used, the probabilities from each source and the alternatives that were considered -- that a user can check.
+
+\section{BACKGROUND}
+
+\subsection{Visual Commonsense Reasoning}
+
+The VCR task, introduced by Zellers et al.~\cite{zellers2019vcr}, poses a multiple-choice question about an image taken from a movie scene. The people and objects in the image are referred to by tags such as \emph{person1} and \emph{person2}. A model must solve two sub-tasks: \QtoA, choosing the correct answer from four options, and \QAtoR, choosing the rationale that justifies the correct answer from four options. The joint metric \QtoAR{} counts a question as correct only when both the answer and the rationale are correct. With four options each, chance accuracy is 25\% for \QtoA{} and \QAtoR{} and 6.25\% for \QtoAR.
+
+\subsection{Vision-Language Models}
+
+A vision-language model (VLM) couples an image encoder with a language model so that it can describe images and answer questions about them. Modern VLMs encode the image into a sequence of visual tokens, project them into the embedding space of a pre-trained language model, and generate text autoregressively~\cite{liu2023llava,li2023blip2}. SmolVLM~\cite{marafioti2025smolvlm} is a family of compact VLMs designed for efficient inference. The variant used in this project, \code{SmolVLM-Instruct}, has about 2.2 billion parameters and combines a SigLIP vision encoder~\cite{zhai2023siglip} with a small language model through a connector that compresses the visual tokens.
+
+\subsection{Commonsense Knowledge Graphs}
+
+ConceptNet~\cite{speer2017conceptnet} is a multilingual knowledge graph of everyday knowledge. Its nodes are words and phrases (for example \emph{concert}, \emph{sing}, \emph{stage}) and its edges are labelled relations such as \emph{RelatedTo}, \emph{IsA}, \emph{UsedFor}, \emph{AtLocation}, \emph{CapableOf}, \emph{Antonym} and \emph{DistinctFrom}, each with a confidence weight. Because each edge is a readable statement (``a performer is typically found at a stage''), ConceptNet is well suited to producing evidence that a human can inspect.
+
+\subsection{Parameter-Efficient Fine-Tuning}
+
+Fine-tuning all the weights of a multi-billion-parameter model is expensive. Low-Rank Adaptation (LoRA)~\cite{hu2022lora} freezes the pre-trained weight matrix $W_0 \in \mathbb{R}^{d \times k}$ and learns a low-rank update:
+\begin{equation}
+  h = W_0 x + \frac{\alpha}{r} B A x, \qquad
+  B \in \mathbb{R}^{d \times r},\; A \in \mathbb{R}^{r \times k},\; r \ll \min(d,k)
+  \label{eq:lora}
+\end{equation}
+where $r$ is the rank and $\alpha$ a scaling factor. Only $A$ and $B$ are trained, so the number of trainable parameters and the optimiser memory are a small fraction of full fine-tuning, and after training $BA$ can be merged into $W_0$ so that inference is no slower than with the base model.
+
+\subsection{Explainability and Faithfulness}
+
+An explanation is \emph{plausible} if it convinces a human and \emph{faithful} if it reflects the reasoning the model actually performed. Visual explanation methods such as Grad-CAM~\cite{selvaraju2017gradcam} highlight the image regions that most influence a prediction. Their faithfulness can be measured with the Insertion--Deletion metric~\cite{petsiuk2018rise}, which tracks how the model's confidence changes as the highlighted pixels are added or removed, and with the Pointing Game~\cite{zhang2018excitation}, which checks whether the most salient point falls inside the relevant object. Textual explanations can be compared with visual explanations to measure cross-modal consistency~\cite{zhang2024crossmodal,parcalabescu2025faithfulness}. These methods form the basis of Phase II of this project.
+
+\section{PROBLEM DEFINITION}
+
+A social interaction may be visually ambiguous even when the people and objects in the scene are detected correctly. A system may recognise two people and their gestures but still need commonsense knowledge to distinguish between possible activities, or to infer the relationship and intention behind the interaction. The problem addressed in this project is therefore:
+
+\begin{quote}
+\itshape Given a static image, video frame, or live-camera frame containing zero or more people, develop a lightweight system that identifies the visual concepts in the scene, enriches them with commonsense knowledge, and predicts the activity, relationship, and intention of a social interaction with interpretable evidence.
+\end{quote}
+
+\subsection{Inputs}
+The system accepts a static image, supplied as a file path, a URL, a NumPy array or a PIL image, as well as sampled frames from a video file and frames from a live camera. Along with the visual input, the user may ask an optional free-form question about the scene and may also supply multiple-choice answer options for that question.
+
+\subsection{Outputs}
+The principal output is a structured prediction of the activity, relationship and intention of the interaction. Each of the three predictions carries a label, a confidence value and a ranked list of alternative labels, and every alternative records its VLM probability, commonsense probability and draft-match value. The prediction is accompanied by its supporting evidence and a generated textual explanation. The intermediate results are returned as well: the visual concepts and draft reasoning produced by the VLM, the ConceptNet facts and label-support scores, and the processing time of each module.
+
+\subsection{Constraints}
+The system is built around lightweight multimodal models so that it can run on modest hardware. The ConceptNet integration uses a local SQLite database for reproducible offline operation and can fall back to other configured backends. The label space used for reasoning is configurable through \path{configs/taxonomy.yaml}.
+
+\subsection{Scope of Phase I}
+The complete framework follows the workflow
+\begin{center}
+\small\textbf{Input $\rightarrow$ Preprocessing $\rightarrow$ VLM $\rightarrow$ Commonsense $\rightarrow$ Reasoning $\rightarrow$ Explanation $\rightarrow$ Consistency $\rightarrow$ Evaluation $\rightarrow$ Dashboard}
+\end{center}
+Phase I, reported here, covers the first four modules -- Input and Preprocessing, the Small Vision-Language Model, ConceptNet Commonsense Enrichment and Social Interaction Reasoning -- together with the offline fine-tuning of SmolVLM on VCR. Its deliverable is a working pipeline that takes visual input and produces a social-interaction prediction with a draft explanation. Phase II adds the textual and visual explanation paths, cross-modal consistency analysis, explainability evaluation and the final explainability dashboard.
+
+\section{ORGANIZATION OF THE REPORT}
+
+This project report is divided into chapters, each describing a significant component of the work performed. Chapter~\ref{ch:intro} introduces the project by explaining the motivation, the background of the study and the problem statement. Chapter~\ref{ch:lit} surveys the literature on visual commonsense reasoning, vision-language models, knowledge-augmented reasoning, social relation recognition and explainability, identifies the gaps this project addresses and states the research objectives.
+
+Chapter~\ref{ch:method} explains the proposed methodology in detail: the overall architecture, each Phase I module with its algorithm, the LoRA fine-tuning procedure and the integration of the modules. Chapter~\ref{ch:results} describes the datasets, the hardware and software ecosystem and the experiments conducted, and analyses the results.
+
+Chapter~\ref{ch:impact} discusses the social impact and sustainability of the proposed system. Chapter~\ref{ch:conclusion} concludes the report and outlines the work planned for Phase II. The appendices list the configuration parameters and the API endpoints of the implementation.

@@ -1,0 +1,37 @@
+%-----------------------------------------
+% Chapter 5 - Social Impact and Sustainability
+%-----------------------------------------
+
+\chapter{SOCIAL IMPACT AND SUSTAINABILITY}
+\label{ch:impact}
+
+\section{SOCIAL IMPACT}
+
+Systems that interpret social interactions in images are beginning to be used in everyday tools, and making such systems explainable and lightweight has several positive applications. For people who are blind or have low vision, a description that goes beyond listing objects -- ``a performer is entertaining an audience'', ``two people appear to be arguing'' -- conveys the social meaning of a scene. Because the system runs on modest hardware, it can be deployed on personal devices without sending images to a remote server. Showing the cues behind an interpretation (gestures, expressions, posture and setting) can also support people who find non-verbal cues hard to read, and can be used in training material that teaches how such cues are interpreted.
+
+Social and service robots need to recognise whether people are busy, in conversation or seeking help before approaching them; an inspectable reasoning chain helps developers check that such decisions are made for the right reasons. More generally, every prediction of the system comes with its evidence, its alternatives and a confidence value, and ambiguous cases are flagged. Users can see when the system is uncertain and why it reached a conclusion, which supports appropriate rather than blind trust in AI.
+
+\subsection{Ethical Considerations}
+
+Inferring relationships and intentions from images is sensitive, and the project recognises the following risks.
+\begin{itemize}
+\item \textbf{Privacy and identification:} Vision-language models may name recognisable people; in the demonstration of Section~\ref{sec:demo}, the scene description identifies the performer by name. Identity is not needed for the social-interaction task. Prompts and output filtering should prevent the system from naming individuals, and face blurring can be applied before results are stored.
+\item \textbf{Surveillance misuse:} Automatic inference of relationships and intentions could be misused to monitor people without consent. The system is intended for assistive and research use with consenting users, and processes images locally without retaining them by default.
+\item \textbf{Bias and stereotyping:} VCR is built from movie scenes, and pre-trained VLMs reflect their training data; such sources can encode stereotypes about who is a ``doctor'' or a ``patient'', or about gender and age roles. Biased performance across demographic groups has been documented in commercial vision systems~\cite{buolamwini2018gender}. The visible evidence and alternatives produced by this system make such biases easier to detect, and a demographic audit of the predictions is planned.
+\item \textbf{Over-reliance:} A confident but wrong inference about intention can mislead. The ambiguity flag and the alternatives are shown so that users treat the output as an interpretation, not a fact.
+\end{itemize}
+
+\section{SUSTAINABILITY}
+
+The design choices of the project reduce the computational and environmental cost of the system~\cite{strubell2019energy}. The 2.2-billion-parameter SmolVLM is far smaller than the large multimodal models commonly used for visual reasoning, so inference runs on a laptop GPU, Apple-silicon MPS or a CPU instead of a data-centre accelerator. LoRA trains only the low-rank adapters while the vision encoder, the connector and the language-model weights remain frozen; the complete training run was 1,500 optimiser steps on a single laboratory GPU. The selected adapter is merged into the base weights at load time, so the fine-tuned model costs no more to run than the base model.
+
+Sustainability is further improved by reuse and offline operation. Commonsense knowledge comes from an existing knowledge graph queried from a local database, and the label space is a configuration file, so new labels can be added without retraining the model. The local ConceptNet database and local model make the system usable without a network connection, which reduces both data transfer and dependence on paid cloud services. For video, frame sampling skips blurry frames and frames that repeat the previous scene, so the model analyses only frames that carry new information.
+
+\subsection{Alignment with the Sustainable Development Goals}
+
+The project contributes to the following United Nations Sustainable Development Goals:
+\begin{itemize}
+\item \textbf{SDG 3 -- Good Health and Well-being:} assistive scene understanding for people with visual impairment and support for social-cue learning.
+\item \textbf{SDG 9 -- Industry, Innovation and Infrastructure:} affordable, explainable AI that runs on commodity hardware.
+\item \textbf{SDG 10 -- Reduced Inequalities:} lower hardware requirements widen access to multimodal AI, and transparent evidence makes biased predictions easier to find and correct.
+\end{itemize}

@@ -1,0 +1,2411 @@
+%% =====================================================================
+%%  Explainable Visual Commonsense Reasoning for Social Interactions
+%%  Project Report -- Phase I
+%%  Sri Sivasubramaniya Nadar College of Engineering, Dept. of CSE
+%%
+%%  Compile with:  pdflatex main.tex  (run twice for ToC / references)
+%%  Overleaf:      upload this file + a folder "figures/" with
+%%                   figures/training_loss.png   (R2 Fig 6.1)
+%%                   figures/ui_predictions.png  (R2 Fig 6.3)
+%%                   figures/ui_evidence.png     (R2 Fig 6.4)
+%%  Missing images are replaced by a red placeholder box, so the file
+%%  compiles even before the images are added.
+%%  Every \fillin{...} (printed in red) is a value you must supply.
+%% =====================================================================
+\documentclass[12pt,a4paper,oneside]{report}
+
+%% ---------- Page layout and fonts -----------------------------------
+\usepackage[a4paper,left=1.5in,right=1in,top=1in,bottom=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{newtxtext,newtxmath}
+\usepackage{setspace}
+\usepackage{microtype}
+\setlength{\emergencystretch}{2em}
+\onehalfspacing
+
+%% ---------- General packages ----------------------------------------
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{multirow}
+\usepackage{float}
+\usepackage[font=small,labelfont=bf]{caption}
+\usepackage{enumitem}
+\usepackage[table]{xcolor}
+\usepackage{titlesec}
+\usepackage[nottoc,notlof,notlot]{tocbibind}
+\usepackage{tikz}
+\usetikzlibrary{positioning,arrows.meta,fit,backgrounds,shapes.geometric,calc}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.17}
+\usepackage[hidelinks]{hyperref}
+\usepackage[chapter]{algorithm}
+\usepackage{algpseudocode}
+
+%% ---------- Chapter heading style (CHAPTER n / TITLE) ---------------
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries\centering}
+  {\Large\MakeUppercase{\chaptertitlename}\ \thechapter}
+  {1.2ex}
+  {\LARGE\MakeUppercase}
+\titlespacing*{\chapter}{0pt}{0pt}{28pt}
+\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.8em}{}
+\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.8em}{}
+\setcounter{secnumdepth}{3}
+\setcounter{tocdepth}{2}
+
+%% ---------- Algorithm style -----------------------------------------
+\algrenewcommand\algorithmicrequire{\textbf{Input:}}
+\algrenewcommand\algorithmicensure{\textbf{Output:}}
+
+%% ---------- Colours (charts and diagrams) ----------------------------
+\definecolor{phaseone}{gray}{0.90}
+\definecolor{seriesA}{HTML}{2A78D6}   % blue
+\definecolor{seriesB}{HTML}{EB6834}   % orange
+\definecolor{seriesC}{HTML}{1BAF7A}   % aqua
+\definecolor{neutralbar}{HTML}{9A9994}
+
+%% ---------- Handy macros --------------------------------------------
+\newcommand{\fillin}[1]{\textcolor{red}{[#1]}}
+\newcommand{\QtoA}{Q$\rightarrow$A}
+\newcommand{\QAtoR}{QA$\rightarrow$R}
+\newcommand{\QtoAR}{Q$\rightarrow$AR}
+\newcommand{\code}[1]{\texttt{#1}}
+%% image with automatic placeholder when the file is missing
+\newcommand{\figimg}[2]{%
+  \IfFileExists{#2}{\includegraphics[width=#1]{#2}}{%
+    \fbox{\parbox[c][5.5cm][c]{\dimexpr#1-2\fboxsep-2\fboxrule\relax}{\centering\small
+      \textcolor{red}{Place image here:}\\[2pt]\texttt{\detokenize{#2}}}}}}
+
+\renewcommand{\arraystretch}{1.15}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+\renewcommand{\bibname}{References}
+
+%% ---------- Report details (edit here) ------------------------------
+\newcommand{\reporttitle}{Explainable Visual Commonsense Reasoning for Social Interactions}
+\newcommand{\guidename}{Dr. M. Saritha}
+\newcommand{\guidedesig}{Assistant Professor}
+\newcommand{\hodname}{\fillin{Name of the HoD}}
+\newcommand{\reportmonth}{\fillin{Month} 2026}
+
+%% =====================================================================
+\begin{document}
+
+%% ---------------------------------------------------------------------
+%% TITLE PAGE
+%% ---------------------------------------------------------------------
+\pagenumbering{roman}
+\begin{titlepage}
+\begin{center}
+\vspace*{0.5cm}
+{\LARGE\bfseries EXPLAINABLE VISUAL COMMONSENSE\\[4pt]
+REASONING FOR SOCIAL INTERACTIONS\par}
+\vspace{1.2cm}
+{\large\bfseries PROJECT REPORT -- PHASE I\par}
+\vspace{1.2cm}
+{\large Submitted by\par}
+\vspace{0.4cm}
+\begin{tabular}{ll}
+\textbf{Vijay Sherwin G}   & 3122235001158\\
+\textbf{Thirilogsha S S}   & 3122235001147\\
+\textbf{Udhaya Sakthi K}   & 3122235001152\\
+\end{tabular}
+
+\vspace{1.0cm}
+{\large\itshape in partial fulfilment of the requirements for the award of the degree of\par}
+\vspace{0.4cm}
+{\Large\bfseries BACHELOR OF ENGINEERING\par}
+\vspace{0.2cm}
+{\large in\par}
+\vspace{0.2cm}
+{\Large\bfseries COMPUTER SCIENCE AND ENGINEERING\par}
+\vspace{1.0cm}
+{\large Under the guidance of\par}
+\vspace{0.2cm}
+{\large\bfseries \guidename\par}
+{\large \guidedesig\par}
+\vfill
+{\large\bfseries Department of Computer Science and Engineering\\[2pt]
+Sri Sivasubramaniya Nadar College of Engineering\\[2pt]
+Kalavakkam -- 603 110\par}
+\vspace{0.4cm}
+{\large\bfseries \reportmonth\par}
+\end{center}
+\end{titlepage}
+
+\setcounter{page}{2}
+
+%% ---------------------------------------------------------------------
+%% BONAFIDE CERTIFICATE
+%% ---------------------------------------------------------------------
+\chapter*{Bonafide Certificate}
+\addcontentsline{toc}{chapter}{Bonafide Certificate}
+
+Certified that this project report titled \textbf{``\reporttitle''} is the
+bonafide work of \textbf{Vijay Sherwin G (3122235001158)},
+\textbf{Thirilogsha S S (3122235001147)} and
+\textbf{Udhaya Sakthi K (3122235001152)}, who carried out the Phase I project
+work under my supervision.
+
+\vspace{3cm}
+\noindent
+\begin{minipage}[t]{0.47\textwidth}
+\textbf{SIGNATURE}\\[4pt]
+\hodname\\
+Head of the Department\\
+Department of Computer Science and Engineering\\
+Sri Sivasubramaniya Nadar College of Engineering
+\end{minipage}\hfill
+\begin{minipage}[t]{0.47\textwidth}
+\textbf{SIGNATURE}\\[4pt]
+\guidename\\
+Supervisor, \guidedesig\\
+Department of Computer Science and Engineering\\
+Sri Sivasubramaniya Nadar College of Engineering
+\end{minipage}
+
+\vspace{2.5cm}
+\noindent Submitted for the project viva-voce examination held on \rule{4cm}{0.4pt}
+
+\vspace{2.5cm}
+\noindent
+\textbf{INTERNAL EXAMINER} \hfill \textbf{EXTERNAL EXAMINER}
+
+%% ---------------------------------------------------------------------
+%% ACKNOWLEDGEMENT
+%% ---------------------------------------------------------------------
+\chapter*{Acknowledgement}
+\addcontentsline{toc}{chapter}{Acknowledgement}
+
+We express our sincere gratitude to our guide, \textbf{\guidename},
+\guidedesig, Department of Computer Science and Engineering, for her continuous
+guidance, encouragement and valuable feedback throughout the first phase of
+this project.
+
+We thank \hodname, Head of the Department of Computer Science and Engineering,
+and the members of the project review panel for their suggestions during the
+reviews. We are grateful to the management and the Principal of Sri
+Sivasubramaniya Nadar College of Engineering for providing the facilities
+required for this work.
+
+We also thank the faculty and staff of the Department of Computer Science and
+Engineering, and our families and friends, for their support.
+
+\vspace{1.5cm}
+\begin{flushright}
+Vijay Sherwin G\\
+Thirilogsha S S\\
+Udhaya Sakthi K
+\end{flushright}
+
+%% ---------------------------------------------------------------------
+%% ABSTRACT
+%% ---------------------------------------------------------------------
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+Understanding a social interaction in an image requires more than recognising
+the people and objects in it. The activity taking place, the relationship
+between the people and their intention are rarely visible directly; they must
+be inferred from visual cues together with everyday commonsense knowledge.
+
+The objective of this project is to build an explainable Visual Commonsense
+Reasoning system that predicts the activity, relationship and intention of a
+social interaction, and supports every prediction with evidence that a user can
+inspect.
+
+The work is carried out in two phases. Phase I, presented in this report,
+builds the prediction pipeline. The input is standardised using OpenCV, a
+lightweight vision-language model (SmolVLM) describes the people, actions and
+setting, ConceptNet supplies related commonsense knowledge, and a reasoning
+stage fuses these sources through log-linear fusion to produce the three
+predictions with confidence scores, ranked alternatives and a textual
+explanation. SmolVLM is also fine-tuned on the VCR dataset with LoRA; the
+checkpoint selected from a 20-epoch run (epoch 11) raises accuracy on 300
+held-out VCR questions from 44.7\% to 58.7\% for \QtoA, from 41.3\% to 57.7\%
+for \QAtoR{} and from 15.3\% to 32.7\% for \QtoAR. The integrated pipeline is
+exposed through a FastAPI--React interface and is validated by 23 automated
+tests, all of which pass. Phase II will verify the explanations through visual
+attribution, cross-modal consistency and faithfulness evaluation, and present
+them in an explainability dashboard.
+
+\vspace{0.5cm}
+\noindent\textbf{Keywords:} visual commonsense reasoning, social interaction
+understanding, vision-language models, SmolVLM, ConceptNet, LoRA,
+explainable AI.
+
+%% ---------------------------------------------------------------------
+%% LISTS
+%% ---------------------------------------------------------------------
+\tableofcontents
+\listoffigures
+\listoftables
+\cleardoublepage
+\phantomsection
+\addcontentsline{toc}{chapter}{List of Algorithms}
+\listofalgorithms
+
+\chapter*{List of Abbreviations}
+\addcontentsline{toc}{chapter}{List of Abbreviations}
+\begin{tabular}{@{}p{3.2cm}p{10.5cm}@{}}
+API      & Application Programming Interface\\
+CLAHE    & Contrast Limited Adaptive Histogram Equalisation\\
+CN       & ConceptNet\\
+CUDA     & Compute Unified Device Architecture\\
+Grad-CAM & Gradient-weighted Class Activation Mapping\\
+HSV      & Hue, Saturation, Value colour space\\
+IDF      & Inverse Document Frequency\\
+JSON     & JavaScript Object Notation\\
+LAB      & CIE $L^*a^*b^*$ colour space\\
+LoRA     & Low-Rank Adaptation\\
+MPS      & Metal Performance Shaders (Apple GPU backend)\\
+PEFT     & Parameter-Efficient Fine-Tuning\\
+\QtoA    & Question to Answer (VCR sub-task)\\
+\QAtoR   & Question and Answer to Rationale (VCR sub-task)\\
+\QtoAR   & Question to Answer and Rationale (joint VCR metric)\\
+SDG      & Sustainable Development Goal\\
+VCR      & Visual Commonsense Reasoning\\
+VLM      & Vision-Language Model\\
+VQA      & Visual Question Answering\\
+\end{tabular}
+
+\cleardoublepage
+\pagenumbering{arabic}
+
+%% =====================================================================
+%% CHAPTER 1  INTRODUCTION
+%% =====================================================================
+\chapter{Introduction}
+\label{ch:intro}
+
+Visual understanding has progressed from object recognition to higher-level
+reasoning about actions, relationships, context and human intention. Social
+interactions are particularly challenging because their interpretation depends
+on several people at once, on their posture and gestures, on the objects they
+use, on their spatial arrangement and on the wider context. Visual Commonsense
+Reasoning (VCR) extends conventional recognition by requiring a model to infer
+information that is not explicitly visible in an image~\cite{zellers2019vcr}.
+This report presents the first phase of a system that performs such reasoning
+for social interactions and exposes the evidence behind each of its
+conclusions.
+
+\section{Motivation}
+
+A photograph of two people shaking hands may show a business deal, a greeting
+between friends, a sporting gesture or a reconciliation after an argument. The
+pixels are much the same in each case; what differs is the context and the
+commonsense knowledge a person brings to the scene. Humans make these
+inferences effortlessly, but automated systems that make them are increasingly
+used in settings where the inference matters: assistive tools that describe
+scenes to visually impaired users, social robots that must decide how to
+approach people, and tools that summarise or moderate visual media.
+
+Two problems limit the use of current models in such settings.
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Opacity.} High-accuracy VCR models select an answer from a set of
+  options but do not show which visual cues or which pieces of world knowledge
+  led to the choice. Large generative vision-language models do produce
+  explanations, but these explanations are not guaranteed to reflect the
+  evidence the model actually used, and they can describe details that are not
+  present in the image.
+\item \textbf{Cost.} The strongest multimodal models have tens of billions of
+  parameters and require data-centre hardware, which rules them out for
+  on-device, privacy-preserving or low-cost deployment.
+\end{enumerate}
+
+This project is motivated by the need for a system that is both
+\emph{lightweight} and \emph{inspectable}: it should run on modest hardware, and
+every prediction about a social interaction should come with structured
+evidence -- the visual concepts detected, the commonsense facts used, the
+probabilities from each source and the alternatives that were considered --
+that a user can check.
+
+\section{Background}
+
+\subsection{Visual Commonsense Reasoning}
+
+The VCR task, introduced by Zellers et al.~\cite{zellers2019vcr}, poses a
+multiple-choice question about an image taken from a movie scene. The people
+and objects in the image are referred to by tags such as \emph{person1} and
+\emph{person2}. A model must solve two sub-tasks: \QtoA, choosing the correct
+answer from four options, and \QAtoR, choosing the rationale that justifies
+the correct answer from four options. The joint metric \QtoAR{} counts a
+question as correct only when both the answer and the rationale are correct.
+With four options each, chance accuracy is 25\% for \QtoA{} and \QAtoR{} and
+6.25\% for \QtoAR.
+
+\subsection{Vision-Language Models}
+
+A vision-language model (VLM) couples an image encoder with a language model so
+that it can describe images and answer questions about them. Modern VLMs encode
+the image into a sequence of visual tokens, project them into the embedding
+space of a pre-trained language model, and generate text
+autoregressively~\cite{liu2023llava,li2023blip2}. SmolVLM~\cite{marafioti2025smolvlm}
+is a family of compact VLMs designed for efficient inference. The variant used
+in this project, \code{SmolVLM-Instruct}, has about 2.2 billion parameters and
+combines a SigLIP vision encoder~\cite{zhai2023siglip} with a small
+language model through a connector that compresses the visual tokens.
+
+\subsection{Commonsense Knowledge Graphs}
+
+ConceptNet~\cite{speer2017conceptnet} is a multilingual knowledge graph of
+everyday knowledge. Its nodes are words and phrases (for example
+\emph{concert}, \emph{sing}, \emph{stage}) and its edges are labelled
+relations such as \emph{RelatedTo}, \emph{IsA}, \emph{UsedFor},
+\emph{AtLocation}, \emph{CapableOf}, \emph{Antonym} and \emph{DistinctFrom},
+each with a confidence weight. Because each edge is a readable statement
+(``a performer is typically found at a stage''), ConceptNet is well suited to
+producing evidence that a human can inspect.
+
+\subsection{Parameter-Efficient Fine-Tuning}
+
+Fine-tuning all the weights of a multi-billion-parameter model is expensive.
+Low-Rank Adaptation (LoRA)~\cite{hu2022lora} freezes the pre-trained weight
+matrix $W_0 \in \mathbb{R}^{d \times k}$ and learns a low-rank update:
+\begin{equation}
+  h = W_0 x + \frac{\alpha}{r} B A x, \qquad
+  B \in \mathbb{R}^{d \times r},\; A \in \mathbb{R}^{r \times k},\; r \ll \min(d,k)
+  \label{eq:lora}
+\end{equation}
+where $r$ is the rank and $\alpha$ a scaling factor. Only $A$ and $B$ are
+trained, so the number of trainable parameters and the optimiser memory are a
+small fraction of full fine-tuning, and after training $BA$ can be merged into
+$W_0$ so that inference is no slower than with the base model.
+
+\subsection{Explainability and Faithfulness}
+
+An explanation is \emph{plausible} if it convinces a human and \emph{faithful}
+if it reflects the reasoning the model actually performed. Visual explanation
+methods such as Grad-CAM~\cite{selvaraju2017gradcam} highlight the image
+regions that most influence a prediction. Their faithfulness can be measured
+with the Insertion--Deletion metric~\cite{petsiuk2018rise}, which tracks how the
+model's confidence changes as the highlighted pixels are added or removed, and
+with the Pointing Game~\cite{zhang2018excitation}, which checks whether the most
+salient point falls inside the relevant object. Textual explanations can be
+compared with visual explanations to measure cross-modal
+consistency~\cite{zhang2024crossmodal,parcalabescu2025faithfulness}. These
+methods form the basis of Phase II of this project.
+
+\section{Problem Definition}
+
+A social interaction may be visually ambiguous even when the people and objects
+in the scene are detected correctly. A system may recognise two people and
+their gestures but still need commonsense knowledge to distinguish between
+possible activities, or to infer the relationship and intention behind the
+interaction. The problem addressed in this project is therefore:
+
+\begin{quote}
+\itshape Given a static image, video frame, or live-camera frame containing zero
+or more people, develop a lightweight system that identifies the visual
+concepts in the scene, enriches them with commonsense knowledge, and predicts
+the activity, relationship, and intention of a social interaction with
+interpretable evidence.
+\end{quote}
+
+\paragraph{Inputs.} The system accepts a static image, supplied as a file path,
+a URL, a NumPy array or a PIL image, as well as sampled frames from a video file
+and frames from a live camera. Along with the visual input, the user may ask an
+optional free-form question about the scene and may also supply
+multiple-choice answer options for that question.
+
+\paragraph{Outputs.} The principal output is a structured prediction of the
+activity, relationship and intention of the interaction. Each of the three
+predictions carries a label, a confidence value and a ranked list of
+alternative labels, and every alternative records its VLM probability,
+commonsense probability and draft-match value. The prediction is accompanied by
+its supporting evidence and a generated textual explanation. The intermediate
+results are returned as well: the visual concepts and draft reasoning produced
+by the VLM, the ConceptNet facts and label-support scores, and the processing
+time of each module.
+
+\paragraph{Constraints.} The system is built around lightweight multimodal
+models so that it can run on modest hardware. The ConceptNet integration uses a
+local SQLite database for reproducible offline operation and can fall back to
+other configured backends. The label space used for reasoning is configurable
+through \path{configs/taxonomy.yaml}.
+
+\paragraph{Scope of Phase I.} The complete framework follows the workflow
+\begin{center}
+\small\textbf{Input $\rightarrow$ Preprocessing $\rightarrow$ VLM $\rightarrow$
+Commonsense $\rightarrow$ Reasoning $\rightarrow$ Explanation $\rightarrow$
+Consistency $\rightarrow$ Evaluation $\rightarrow$ Dashboard}
+\end{center}
+Phase I, reported here, covers the first four modules -- Input and
+Preprocessing, the Small Vision-Language Model, ConceptNet Commonsense
+Enrichment and Social Interaction Reasoning -- together with the offline
+fine-tuning of SmolVLM on VCR. Its deliverable is a working pipeline that takes
+visual input and produces a social-interaction prediction with a draft
+explanation. Phase II adds the textual and visual explanation paths,
+cross-modal consistency analysis, explainability evaluation and the final
+explainability dashboard.
+
+\section{Organization of the Report}
+
+The rest of this report is organised as follows.
+Chapter~\ref{ch:lit} surveys the literature on visual commonsense reasoning,
+vision-language models, knowledge-augmented reasoning, social relation
+recognition and explainability, identifies the gaps this project addresses and
+states the research objectives.
+Chapter~\ref{ch:method} describes the proposed methodology: the overall
+architecture, each Phase I module with its algorithm, the LoRA fine-tuning
+procedure and the integration of the modules.
+Chapter~\ref{ch:results} describes the datasets and the hardware and software
+ecosystem, the experiments conducted, and analyses the results.
+Chapter~\ref{ch:impact} discusses the social impact and sustainability of the
+work. Chapter~\ref{ch:conclusion} concludes the report and outlines the work
+planned for Phase II. The appendices list the configuration parameters and the
+API endpoints of the implementation.
+
+%% =====================================================================
+%% CHAPTER 2  LITERATURE SURVEY
+%% =====================================================================
+\chapter{Literature Survey}
+\label{ch:lit}
+
+This chapter reviews work in five areas that bear on the problem: models and
+datasets for visual commonsense reasoning, pre-trained and instruction-tuned
+vision-language models, reasoning with external knowledge, recognition of
+social relations, and the explanation and evaluation of multimodal models.
+
+\section{Papers Related to the Problem Identified}
+
+\subsection{Visual Commonsense Reasoning Models}
+
+\textbf{Zellers et al.}~\cite{zellers2019vcr} introduced the VCR dataset and the
+Recognition-to-Cognition network (R2C). R2C grounds the words of the question
+and the candidate responses in detected object regions, contextualises the
+response with respect to the question and the image, and reasons over the
+result to score each option. The dataset was constructed with
+\emph{Adversarial Matching}, which reuses correct answers from other questions
+as distractors so that the wrong options are fluent and relevant. The paper
+showed a large gap between the best model and human performance, establishing
+VCR as a benchmark for cognition-level understanding.
+
+\textbf{Lin et al.}~\cite{lin2019tabvcr} proposed TAB-VCR, a simpler baseline
+that attaches attributes to the detected objects and adds new tags for objects
+that are mentioned in the text but not tagged in the image. The improved visual
+grounding gave higher accuracy than R2C with fewer parameters, showing that
+better grounding of text in image regions matters more than model complexity.
+
+\textbf{Yu et al.}~\cite{yu2019hgl} proposed Heterogeneous Graph Learning (HGL),
+which builds a vision-to-answer graph and a question-to-answer graph and uses a
+contextual voting module to exploit long-range visual context. It models the
+relations between visual and linguistic elements explicitly, but its reasoning
+remains internal to the network.
+
+\textbf{Park et al.}~\cite{park2020visualcomet} introduced VisualCOMET, a
+dataset of more than a million textual commonsense inferences about still
+images, describing what may have happened before, what may happen next and the
+intents of the people in the scene. It frames visual commonsense as the
+generation of inferences rather than the selection of options, which is closer
+to the explanations this project produces.
+
+\subsection{Pre-trained Vision-Language Transformers}
+
+\textbf{ViLBERT}~\cite{lu2019vilbert} extended BERT to a two-stream architecture
+in which visual and textual streams interact through co-attentional transformer
+layers, pre-trained on image--caption pairs and transferred to tasks including
+VCR. \textbf{VL-BERT}~\cite{su2020vlbert} used a single-stream transformer over
+both modalities, and \textbf{UNITER}~\cite{chen2020uniter} learned a universal
+image--text representation from several large datasets with word--region
+alignment objectives, reaching state-of-the-art VCR accuracy at the time.
+\textbf{MERLOT}~\cite{zellers2021merlot} learned multimodal script knowledge from
+millions of YouTube videos and their transcripts, and transferred well to VCR.
+
+These models raised VCR accuracy considerably, but they are discriminative
+classifiers: they score given options and provide no explanation of their own
+beyond attention weights, which are not reliable indicators of the evidence
+used.
+
+\subsection{Large and Small Vision-Language Models}
+
+\textbf{CLIP}~\cite{radford2021clip} trained image and text encoders
+contrastively on 400 million image--text pairs, enabling zero-shot recognition
+from natural-language labels. \textbf{BLIP-2}~\cite{li2023blip2} connected a
+frozen image encoder to a frozen large language model through a lightweight
+Querying Transformer, and \textbf{LLaVA}~\cite{liu2023llava} connected a CLIP
+encoder to an instruction-tuned language model and trained it on
+machine-generated visual instruction data. These generative VLMs answer open
+questions and produce fluent free-form explanations, but the largest of them are
+expensive to run and their explanations can include details that are not
+present in the image.
+
+\textbf{SmolVLM}~\cite{marafioti2025smolvlm} targets the opposite end of the
+design space: compact models with aggressive visual-token compression, intended
+for on-device and low-memory inference. Its vision encoder is based on
+SigLIP~\cite{zhai2023siglip}. SmolVLM makes a VLM practical on a laptop, which
+is why it is used in this project, but on its own it is not adapted to
+commonsense reasoning about people.
+
+\subsection{Knowledge-Augmented Visual Reasoning}
+
+\textbf{ConceptNet 5.5}~\cite{speer2017conceptnet} provides a large graph of
+general knowledge whose edges are readable statements.
+\textbf{OK-VQA}~\cite{marino2019okvqa} is a VQA benchmark whose questions cannot
+be answered from the image alone and require external knowledge.
+\textbf{KRISP}~\cite{marino2021krisp} combined the implicit knowledge of a
+pre-trained transformer with symbolic knowledge from graphs, including
+ConceptNet, through a graph network, and showed that both kinds of knowledge
+contribute. In these systems, however, the retrieved knowledge is usually
+converted into hidden features, so the facts that influenced an answer are not
+shown to the user.
+
+\subsection{Social Relation and Interaction Recognition}
+
+\textbf{Sun et al.}~\cite{sun2017domain} annotated social relations in the PIPA
+photo-album dataset following a domain-based theory from social psychology and
+predicted relations from attributes of the people such as age, gender, clothing
+and proximity. \textbf{Li et al.}~\cite{li2017dualglance} introduced the PISC
+dataset and a Dual-Glance model that first looks at the pair of people and then
+attends to contextual objects in the scene. These works show that context and
+person attributes determine the relationship, but they treat the relationship
+as a single classification target and do not reason jointly about the activity
+and the intention.
+
+\subsection{Parameter-Efficient Adaptation}
+
+\textbf{LoRA}~\cite{hu2022lora} adapts large models by training low-rank updates
+to frozen weight matrices, and \textbf{QLoRA}~\cite{dettmers2023qlora} combines
+LoRA with 4-bit quantisation of the frozen weights so that large models can be
+fine-tuned on a single GPU. These methods make it feasible to adapt a VLM to VCR
+on free cloud notebooks.
+
+\subsection{Explainability and Faithfulness Evaluation}
+
+\textbf{Grad-CAM}~\cite{selvaraju2017gradcam} produces class-specific saliency
+maps from the gradients flowing into the last convolutional or attention layer.
+\textbf{RISE}~\cite{petsiuk2018rise} explains black-box models by random masking
+and introduced the Insertion and Deletion metrics for evaluating saliency maps.
+The \textbf{Pointing Game}~\cite{zhang2018excitation} checks whether the
+maximum of a saliency map lies on the annotated object.
+\textbf{e-ViL}~\cite{kayser2021evil} provides a benchmark for natural-language
+explanations in vision-language tasks. Recent work examines whether the textual
+explanations of VLMs are self-consistent and faithful to their use of the image
+and the text~\cite{parcalabescu2025faithfulness}, and whether multimodal models
+give consistent answers across modalities~\cite{zhang2024crossmodal}.
+
+\section{Summary of the Literature}
+
+Table~\ref{tab:litsummary} summarises the principal works and their limitations
+with respect to the problem defined in Chapter~\ref{ch:intro}.
+
+\begin{table}[!htb]
+\centering
+\caption{Summary of related work}
+\label{tab:litsummary}
+\footnotesize
+\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\textwidth}{@{}p{2.6cm}p{3.6cm}L@{}}
+\toprule
+\textbf{Work} & \textbf{Approach} & \textbf{Limitation for this problem}\\
+\midrule
+R2C~\cite{zellers2019vcr} & Grounded attention over detections; VCR benchmark & Selects options; no evidence shown to the user \\
+TAB-VCR~\cite{lin2019tabvcr} & Attributes and new tags for better grounding & Same discriminative setting; no external knowledge \\
+HGL~\cite{yu2019hgl} & Heterogeneous vision/question--answer graphs & Graph reasoning is internal and not readable \\
+ViLBERT, VL-BERT, UNITER~\cite{lu2019vilbert,su2020vlbert,chen2020uniter} & Large-scale vision--language pre-training & High accuracy but opaque; heavy fine-tuning \\
+MERLOT~\cite{zellers2021merlot} & Script knowledge from video & Very large pre-training cost \\
+BLIP-2, LLaVA~\cite{li2023blip2,liu2023llava} & Generative VLMs with LLM backbones & Fluent but unverified explanations; large models \\
+SmolVLM~\cite{marafioti2025smolvlm} & Compact efficient VLM & Not adapted to social commonsense reasoning \\
+KRISP~\cite{marino2021krisp} & Implicit + symbolic (ConceptNet) knowledge & Knowledge hidden in features; not social-specific \\
+Dual-Glance, PIPA~\cite{li2017dualglance,sun2017domain} & Social relation classification with context & Relationship only; no activity or intention \\
+Grad-CAM, RISE, Pointing Game~\cite{selvaraju2017gradcam,petsiuk2018rise,zhang2018excitation} & Saliency and its evaluation & Not linked to textual explanations \\
+e-ViL~\cite{kayser2021evil} & Benchmark for natural-language explanations & Evaluates text alone, not cross-modal agreement \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Gaps Identified}
+
+The survey reveals the following gaps.
+
+\begin{enumerate}[label=\textbf{G\arabic*.},leftmargin=*]
+\item \textbf{Accuracy without explanation.} The strongest VCR models choose an
+  answer and a rationale from given options but do not expose the visual cues
+  or knowledge behind the choice.
+\item \textbf{Explanations without verification.} Generative VLMs produce
+  fluent explanations, but these are not checked against the visual evidence
+  and can describe things that are not in the image.
+\item \textbf{Hidden knowledge.} Knowledge-augmented models fold the retrieved
+  facts into hidden representations, so the user cannot see which facts
+  influenced a prediction.
+\item \textbf{Single-target social understanding.} Social relation recognition
+  treats the relationship as an isolated label; the activity, the relationship
+  and the intention are not predicted jointly and consistently.
+\item \textbf{Separate evaluation of explanations.} Visual saliency and textual
+  explanations are evaluated separately; their mutual consistency is rarely
+  measured.
+\item \textbf{Computational cost.} Most high-performing systems require large
+  models and data-centre hardware, which prevents lightweight or on-device use.
+\end{enumerate}
+
+\section{Research Objectives}
+\label{sec:objectives}
+
+To address these gaps, the project sets the following objectives. Objectives
+1--10 are the Phase I objectives addressed in this report; objectives 11--13
+belong to Phase II.
+
+\begin{enumerate}[leftmargin=*]
+\item To implement a robust input and preprocessing pipeline for images, video
+  frames and live-camera input using OpenCV.
+\item To integrate a lightweight vision-language model, SmolVLM, for visual
+  understanding and language-based reasoning (G6).
+\item To fine-tune SmolVLM on the VCR dataset using LoRA and select the best
+  checkpoint on held-out validation questions (G6).
+\item To extract people, objects, actions, gestures, setting and spatial
+  information from the visual input as structured concepts (G1).
+\item To enrich the visual concepts with everyday commonsense knowledge from
+  ConceptNet and expose that knowledge as readable evidence paths (G3).
+\item To develop a social-interaction reasoning module that fuses visual,
+  commonsense and VLM draft evidence (G1, G3).
+\item To predict the activity, relationship and intention of a social
+  interaction in sequence so that they are mutually consistent (G4).
+\item To provide confidence values, ranked alternatives and supporting evidence
+  for each prediction (G1).
+\item To integrate the Phase I modules into a reusable Python pipeline and an
+  operational FastAPI--React demonstration interface.
+\item To validate the implemented modules using automated unit and end-to-end
+  tests.
+\item \emph{(Phase II)} To generate independent textual and visual (Grad-CAM)
+  explanations for each prediction (G2).
+\item \emph{(Phase II)} To measure the cross-modal consistency of the two
+  explanations and evaluate their faithfulness with the Insertion--Deletion
+  metric and the Pointing Game (G2, G5).
+\item \emph{(Phase II)} To present the predictions, explanations and scores in
+  an explainability dashboard.
+\end{enumerate}
+
+%% =====================================================================
+%% CHAPTER 3  PROPOSED METHODOLOGY
+%% =====================================================================
+\chapter{Proposed Methodology}
+\label{ch:method}
+
+This chapter describes the architecture of the proposed system and the design
+of each Phase I module. The Phase I pipeline is
+\begin{center}
+\textbf{Input $\rightarrow$ OpenCV Preprocessing $\rightarrow$ SmolVLM
+$\rightarrow$ ConceptNet $\rightarrow$ Social Reasoning}
+\end{center}
+with an offline training phase in which SmolVLM is fine-tuned on VCR.
+
+\section{Architectural Design of the Proposed System}
+
+The overall architecture, covering both phases, is shown in
+Figure~\ref{fig:overall}. Visual input is preprocessed with OpenCV and passed to
+a small vision-language model, which can be replaced by a version fine-tuned
+offline on the VCR dataset. The output of the model is enriched with
+commonsense knowledge, and the social interaction reasoning module fuses the two
+into a prediction.
+
+In Phase II, this prediction is explained along two independent paths, one
+textual and one visual. The consistency between the two explanations is
+measured, their faithfulness is evaluated with the Insertion--Deletion metric
+and the Pointing Game, and the results are presented in an explainability
+dashboard.
+
+\begin{figure}[p]
+\centering
+\resizebox{\linewidth}{!}{%
+\begin{tikzpicture}[
+  font=\small, >={Stealth[length=2mm]},
+  box/.style={draw, rounded corners=2pt, fill=white, align=center,
+              minimum height=0.75cm, inner sep=3pt},
+  grp/.style={draw, rounded corners=4pt, inner sep=0.18cm},
+  p1/.style={grp, fill=phaseone},
+  p2/.style={grp, fill=white},
+  ttl/.style={anchor=west, font=\small\bfseries, inner sep=0pt},
+  arr/.style={->, thick}
+]
+%% ---- Input and preprocessing (Phase I)
+\node[ttl] (t1) at (0.6,0.75) {Input and Preprocessing};
+\node[box, minimum width=4.2cm] (in1) at (2.9,0.0) {Static image};
+\node[box, minimum width=4.2cm] (in2) at (2.9,-0.95) {Video stream / live camera};
+\node[box, minimum width=5cm, minimum height=1.3cm] (pre) at (11,-0.475) {OpenCV preprocessing};
+\coordinate (c1a) at (0.6,0.75); \coordinate (c1b) at (15.4,-1.33);
+\begin{scope}[on background layer]
+  \node[p1, fit=(t1)(in1)(in2)(pre)(c1a)(c1b)] (g1) {};
+\end{scope}
+\draw[arr] (in1.east) -- (in1.east -| pre.west);
+\draw[arr] (in2.east) -- (in2.east -| pre.west);
+
+%% ---- Offline training phase
+\node[ttl] (t2) at (0.6,-2.35) {Training Phase (Offline)};
+\node[box, minimum width=3.4cm] (tr1) at (2.7,-3.15) {VCR dataset};
+\node[box, minimum width=3.4cm] (tr2) at (2.7,-4.15) {Data preparation};
+\node[box, minimum width=3.4cm] (tr3) at (2.7,-5.15) {LoRA fine-tuning};
+\node[box, minimum width=3.4cm] (tr4) at (2.7,-6.15) {Fine-tuned SmolVLM};
+\coordinate (c2a) at (0.6,-2.35); \coordinate (c2b) at (4.8,-6.55);
+\begin{scope}[on background layer]
+  \node[grp, dashed, fill=phaseone!50, fit=(t2)(tr1)(tr4)(c2a)(c2b)] (g2) {};
+\end{scope}
+\draw[arr] (tr1) -- (tr2);
+\draw[arr] (tr2) -- (tr3);
+\draw[arr] (tr3) -- (tr4);
+
+%% ---- SmolVLM
+\node[ttl] (t3) at (5.6,-2.35) {Small Vision-Language Model (SmolVLM)};
+\node[box, minimum width=4.2cm] (v1) at (8.0,-3.5) {Visual understanding};
+\node[box, minimum width=4.2cm] (v2) at (13.1,-3.5) {Language and reasoning};
+\coordinate (c3a) at (5.6,-2.35); \coordinate (c3b) at (15.4,-4.1);
+\begin{scope}[on background layer]
+  \node[p1, fit=(t3)(v1)(v2)(c3a)(c3b)] (g3) {};
+\end{scope}
+\draw[arr] (pre.south) -- (pre.south |- g3.north);
+\draw[arr] (v1) -- (v2);
+\draw[arr] (tr4.east) -- ++(0.75,0) |- (g3.west);
+
+%% ---- ConceptNet
+\node[box, fill=phaseone, font=\small\bfseries, minimum width=9.8cm,
+      minimum height=0.85cm] (cn) at (10.5,-6.15)
+      {Commonsense Knowledge Enrichment (ConceptNet)};
+\draw[arr] (v2.south) -- (v2.south |- cn.north);
+
+%% ---- Social interaction reasoning
+\node[ttl] (t4) at (0.6,-7.35) {Social Interaction Reasoning};
+\node[box, minimum width=2.5cm, minimum height=1.0cm] (s1) at (1.85,-8.35)  {Context\\fusion};
+\node[box, minimum width=2.5cm, minimum height=1.0cm] (s2) at (4.925,-8.35) {Sequential\\prediction};
+\node[box, minimum width=2.5cm, minimum height=1.0cm] (s3) at (8.0,-8.35)   {Candidate\\shortlisting};
+\node[box, minimum width=2.5cm, minimum height=1.0cm] (s4) at (11.075,-8.35){Log-linear\\fusion};
+\node[box, minimum width=2.5cm, minimum height=1.0cm] (s5) at (14.15,-8.35) {Context /\\query};
+\coordinate (c4a) at (0.6,-7.35); \coordinate (c4b) at (15.4,-8.85);
+\begin{scope}[on background layer]
+  \node[p1, fit=(t4)(s1)(s5)(c4a)(c4b)] (g4) {};
+\end{scope}
+\draw[arr] (s1) -- (s2);
+\draw[arr] (s2) -- (s3);
+\draw[arr] (s3) -- (s4);
+\draw[arr] (s5) -- (s4);
+\draw[arr] (cn.south) -- (cn.south |- g4.north);
+
+%% ---- Phase II: explanation paths and consistency
+\node[box, font=\small\bfseries, minimum width=7cm, minimum height=0.85cm] (tex) at (4.2,-10.2) {Textual explanation path};
+\node[box, font=\small\bfseries, minimum width=7cm, minimum height=0.85cm] (vis) at (11.8,-10.2) {Visual explanation path};
+\draw[arr] (tex.north |- g4.south) -- (tex.north);
+\draw[arr] (vis.north |- g4.south) -- (vis.north);
+\node[box, font=\small\bfseries, minimum width=5.4cm, minimum height=0.85cm] (cons) at (8,-11.5) {Cross-modal consistency analysis};
+\draw[arr] (tex.south) |- (cons.west);
+\draw[arr] (vis.south) |- (cons.east);
+
+%% ---- Phase II: evaluation
+\node[ttl] (t5) at (0.6,-12.55) {Explainability Evaluation};
+\node[box, minimum width=6.8cm] (e1) at (4.2,-13.4)  {Insertion--Deletion metric};
+\node[box, minimum width=6.8cm] (e2) at (11.8,-13.4) {Pointing game};
+\coordinate (c5a) at (0.6,-12.55); \coordinate (c5b) at (15.4,-13.85);
+\begin{scope}[on background layer]
+  \node[p2, fit=(t5)(e1)(e2)(c5a)(c5b)] (g5) {};
+\end{scope}
+\draw[arr] (cons.south) -- (cons.south |- g5.north);
+
+%% ---- Phase II: dashboard
+\node[ttl] (t6) at (0.6,-14.95) {Final Explainable Output (Dashboard)};
+\node[box, font=\footnotesize, minimum width=3.4cm, minimum height=1.0cm] (d1) at (2.3,-15.85)  {Input frame};
+\node[box, font=\footnotesize, minimum width=3.4cm, minimum height=1.0cm] (d2) at (6.1,-15.85)  {Predicted\\interaction};
+\node[box, font=\footnotesize, minimum width=3.4cm, minimum height=1.0cm] (d3) at (9.9,-15.85)  {Activity, relationship,\\intention};
+\node[box, font=\footnotesize, minimum width=3.4cm, minimum height=1.0cm] (d4) at (13.7,-15.85) {Consistency\\score};
+\coordinate (c6a) at (0.6,-14.95); \coordinate (c6b) at (15.4,-16.35);
+\begin{scope}[on background layer]
+  \node[p2, fit=(t6)(d1)(d4)(c6a)(c6b)] (g6) {};
+\end{scope}
+\draw[arr] (cons.south |- g5.south) -- (cons.south |- g6.north);
+\end{tikzpicture}%
+}
+\caption[Overall architecture of the proposed system]{Overall architecture of
+the proposed system (shaded blocks: Phase I, implemented in this report;
+unshaded blocks: Phase II)}
+\label{fig:overall}
+\end{figure}
+
+\section{Phase I Architecture}
+
+The part of the architecture implemented in Phase I is shown in
+Figure~\ref{fig:phase1}. The modules are connected through structured Python
+data objects rather than by passing unstructured text between stages. The main
+implementation files are listed in Table~\ref{tab:codemap}.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[
+  font=\small, >={Stealth[length=2mm]},
+  box/.style={draw, rounded corners=2pt, align=center, minimum height=0.8cm,
+              minimum width=6.4cm, inner sep=3pt},
+  mod/.style={box, fill=phaseone, font=\small\bfseries},
+  arr/.style={->, thick}
+]
+\node[box] (a0) at (0,0) {Image / Video frame / Live camera};
+\node[mod] (a1) at (0,-1.2) {Input and Preprocessing};
+\node[mod] (a2) at (0,-2.4) {Small Vision-Language Model};
+\node[mod] (a3) at (0,-3.6) {ConceptNet Commonsense Enrichment};
+\node[mod] (a4) at (0,-4.8) {Social Interaction Reasoning};
+\node[box] (a5) at (0,-6.0) {Activity $\cdot$ Relationship $\cdot$ Intention};
+\draw[arr] (a0) -- (a1);
+\draw[arr] (a1) -- (a2);
+\draw[arr] (a2) -- (a3);
+\draw[arr] (a3) -- (a4);
+\draw[arr] (a4) -- (a5);
+\node[draw, cylinder, shape border rotate=90, aspect=0.25, minimum height=1.3cm,
+      minimum width=1.9cm, align=center, font=\footnotesize] (db) at (-5.0,-3.6)
+      {ConceptNet\\(SQLite)};
+\draw[arr] (db.east) -- (a3.west);
+\node[draw, dashed, rounded corners=2pt, align=center, font=\footnotesize,
+      minimum height=0.8cm] (lora) at (5.1,-2.4) {LoRA adapter\\(VCR, epoch 11)};
+\draw[arr] (lora.west) -- (a2.east);
+\end{tikzpicture}
+\caption{Phase I architecture}
+\label{fig:phase1}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\caption{Phase I module-to-code mapping}
+\label{tab:codemap}
+\small
+\begin{tabularx}{\textwidth}{@{}p{5.2cm}L@{}}
+\toprule
+\textbf{Module} & \textbf{Implementation}\\
+\midrule
+Input and Preprocessing & \path{svcr/preprocessing.py}, \code{Preprocessor}, \code{FrameStream}\\
+Small Vision-Language Model & \path{svcr/vlm.py}, \code{SmolVLMEngine}\\
+ConceptNet Commonsense Enrichment & \path{svcr/conceptnet/client.py}, \path{enrichment.py}, \path{relations.py}\\
+Social Interaction Reasoning & \path{svcr/reasoning.py}, \code{SocialInteractionReasoner}\\
+Fine-Tuning (offline) & \path{finetune/train_vcr_lora.py}, \path{configs/finetuned.yaml}\\
+Pipeline Integration & \path{svcr/pipeline.py}, \code{Phase1Pipeline}\\
+Data Structures & \path{svcr/schemas.py}\\
+Configuration & \path{configs/default.yaml}, \path{configs/taxonomy.yaml}\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Data Flow}
+
+For a single image, data flows through the pipeline as follows. The image is
+acquired and its quality is assessed; the necessary preprocessing is applied,
+and the frame is converted into the RGB representation expected by the model
+together with a normalised tensor. SmolVLM then examines the frame to identify
+the people, objects, actions, gestures, setting and spatial relationships, and
+produces a draft activity, relationship, intention and rationale, as well as an
+answer to the user's question when one is asked.
+
+Salient concepts are next extracted from these outputs and looked up in
+ConceptNet. The useful commonsense relations are retained and used to calculate
+the support for each candidate label in the taxonomy. Finally, the VLM
+probabilities, the ConceptNet support and the draft-matching scores are fused
+to predict the activity, relationship and intention in sequence, and the
+structured result is returned with its evidence, alternatives, explanation and
+timings.
+
+\section{Input and Preprocessing}
+\label{sec:preproc}
+
+The Input and Preprocessing module provides a common input representation for
+all downstream components. It is implemented in \path{svcr/preprocessing.py}
+using OpenCV~\cite{bradski2000opencv}, NumPy and, where required, PIL.
+
+\paragraph{Input sources.} The module accepts image file paths, HTTP and HTTPS
+image URLs, NumPy arrays and PIL images, as well as video files and live camera
+streams. Each is converted into a common BGR frame before further processing.
+
+\paragraph{Quality assessment.} For every frame the brightness, contrast and
+blur are calculated; blur is estimated from the variance of the Laplacian.
+Frames that are dark or low in contrast are enhanced by applying
+CLAHE~\cite{zuiderveld1994clahe} to the luminance channel of the LAB colour
+space, followed by a mild gamma correction. Optional non-local-means denoising
+is available through the configuration.
+
+\paragraph{Resize and normalisation.} The default resizing mode preserves the
+aspect ratio and limits the longest side to a size compatible with the model.
+The RGB image is retained as an 8-bit image for the SmolVLM processor, and a
+normalised tensor is also generated:
+\begin{equation}
+  x_{\text{norm}} = \frac{x/255 - \mu}{\sigma}, \qquad
+  \mu = \sigma = (0.5, 0.5, 0.5)
+  \label{eq:norm}
+\end{equation}
+The tensor has shape $1 \times 3 \times H \times W$ and is retained for the
+Phase II operations, Grad-CAM and Insertion--Deletion. The procedure is given in
+Algorithm~\ref{alg:preprocess}.
+
+\begin{algorithm}[htbp]
+\caption{Input preprocessing}
+\label{alg:preprocess}
+\begin{algorithmic}[1]
+\Require Image source $S$ (path, URL, array or PIL image); target longest side $N$; normalisation constants $\mu,\sigma$
+\Ensure Preprocessed frame $F$
+\State $I \gets \textsc{LoadAsBGR}(S)$;\; $(h,w) \gets$ size of $I$
+\State $g \gets$ greyscale version of $I$
+\State $b \gets \operatorname{mean}(g)$;\; $c \gets \operatorname{std}(g)$;\; $z \gets \operatorname{Var}(\nabla^2 g)$ \Comment{brightness, contrast, blur}
+\If{$b < 60$ \textbf{or} $c < 25$}
+  \State $I \gets$ CLAHE on the L channel of LAB, then gamma $0.8$
+\EndIf
+\If{denoising is enabled}
+  \State $I \gets \textsc{NonLocalMeansDenoise}(I)$
+\EndIf
+\State $s \gets N / \max(h,w)$
+\If{$s < 1$}
+  \State $I \gets \textsc{Resize}(I, s)$ \Comment{aspect ratio preserved}
+\EndIf
+\State $R \gets \textsc{BGRtoRGB}(I)$
+\State $T \gets (R/255 - \mu)/\sigma$, arranged as $1 \times 3 \times H \times W$
+\State \Return $F = \big(R, T, (w,h), s, \{b, c, z, \text{blurry} = z < 60\}\big)$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Video and live-camera handling.} For video and live-camera input,
+\code{FrameStream} samples frames at a configurable interval. Blurry frames can
+be skipped, and frames that show the same scene as the last analysed frame are
+filtered out using the Bhattacharyya distance between HSV histograms, with a
+periodic refresh so that a scene is not suppressed indefinitely
+(Algorithm~\ref{alg:framesample}). For uploaded videos, the web interface
+selects up to seven key moments: the clip is divided into scene segments using
+colour histograms, and the sharpest frame from the central part of each segment
+is analysed.
+
+\begin{algorithm}[htbp]
+\caption{Frame sampling for video and live camera}
+\label{alg:framesample}
+\begin{algorithmic}[1]
+\Require Frame stream $\{(f_t, t)\}$; interval $\Delta$; scene-change threshold $\tau$
+\Ensure Sequence of frames to analyse
+\State $t_{\text{check}} \gets -\infty$;\; $t_{\text{last}} \gets -\infty$;\; $H_{\text{last}} \gets \textsc{null}$
+\ForAll{frames $(f_t, t)$ in the stream}
+  \If{$t - t_{\text{check}} < \Delta$ \textbf{or} $f_t$ is blurry}
+    \State \textbf{continue}
+  \EndIf
+  \State $t_{\text{check}} \gets t$;\; $H \gets$ HSV histogram of $f_t$
+  \If{$H_{\text{last}} \neq \textsc{null}$ \textbf{and} $t - t_{\text{last}} < 3\Delta$ \textbf{and} $d_{\text{Bhatt}}(H_{\text{last}}, H) < \tau$}
+    \State \textbf{continue} \Comment{same scene as last analysed frame}
+  \EndIf
+  \State $t_{\text{last}} \gets t$;\; $H_{\text{last}} \gets H$
+  \State \textbf{output} $f_t$
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\section{Small Vision-Language Model}
+\label{sec:vlm}
+
+The VLM module is implemented by \code{SmolVLMEngine} in \path{svcr/vlm.py}.
+The default configuration uses \code{HuggingFaceTB/SmolVLM-Instruct}, loaded
+through Hugging Face Transformers~\cite{wolf2020transformers}. The engine loads
+the model and processor once, selects CUDA, MPS or the CPU as available, and
+provides three operations: \code{generate()} for deterministic text generation,
+\code{score\_options()} for multiple-choice probability estimation, and
+\code{run()}, which performs the complete visual-understanding and
+draft-reasoning stage.
+
+\paragraph{Visual understanding.} The engine first generates a detailed,
+people-centric description of the image. Short follow-up prompts then ask for
+the number of people, the important objects, the actions being performed, the
+facial expressions, gestures and body language, the setting, and a description
+or role for each person. The answers are parsed into clean concept lists and
+stored in a \code{VisualConcepts} object; text utilities normalise the phrases
+and extract spatial relationships from the description.
+
+\paragraph{Language and reasoning.} The second sub-stage generates free-form
+draft answers for the activity, the relationship and the intention, a visual
+rationale that explains them, and an answer to the user's question when one is
+provided. Decoding is deterministic: sampling is disabled and a repetition
+penalty is applied, so the same input always gives the same output.
+Algorithm~\ref{alg:vlm} gives the procedure; \textsc{Generate} denotes greedy
+decoding with a repetition penalty.
+
+\begin{algorithm}[htbp]
+\caption{Visual understanding and draft reasoning with SmolVLM}
+\label{alg:vlm}
+\begin{algorithmic}[1]
+\Require Preprocessed frame $F$; optional question $Q$
+\Ensure Visual concepts $V$; draft reasoning $D$
+\State $cap \gets \textsc{Generate}(F, \text{describe-the-people prompt})$
+\State $\theta \gets \textsc{ExtractTerms}(cap)$ \Comment{nouns, verbs, adjectives, people}
+\ForAll{$k \in \{\text{count, objects, actions, gestures, setting, people}\}$}
+  \State $a_k \gets \textsc{Generate}(F, \text{prompt}_k)$
+\EndFor
+\State $n \gets \textsc{ParseCount}(a_{\text{count}})$; if no number is found, $n \gets \textsc{ParseCount}(cap)$
+\State $V.\mathit{objects} \gets \textsc{Split}(a_{\text{objects}}) \cup \theta.\text{nouns}$
+\State $V.\mathit{actions} \gets \textsc{Split}(a_{\text{actions}}) \cup \theta.\text{verbs}$
+\State $V.\mathit{gestures} \gets \textsc{Split}(a_{\text{gestures}})$;\; $V.\mathit{people} \gets \textsc{Split}(a_{\text{people}}) \cup \theta.\text{people}$
+\State $V.\mathit{setting} \gets a_{\text{setting}}$;\; $V.\mathit{spatial} \gets \textsc{SpatialRelations}(cap)$
+\If{$n \geq 2$}
+  \State $D.\mathit{activity} \gets \textsc{Generate}(F, \text{``what interaction is happening?''})$
+  \State $D.\mathit{relationship} \gets \textsc{Generate}(F, \text{``what is their relationship?''})$
+\Else
+  \State $D.\mathit{activity} \gets \textsc{Generate}(F, \text{``what is the person doing?''})$
+  \State $D.\mathit{relationship} \gets \text{``no relationship''}$
+\EndIf
+\State $D.\mathit{intention} \gets \textsc{Generate}(F, \text{``why are they } D.\mathit{activity}\text{?''})$
+\State $D.\mathit{rationale} \gets \textsc{Generate}(F, \text{``what visible evidence shows this?''})$
+\If{$Q \neq \textsc{null}$}
+  \State $D.\mathit{answer} \gets \textsc{Generate}(F, Q + \text{``answer briefly and give the visual reason''})$
+\EndIf
+\State \Return $(V, D)$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Multiple-choice scoring.} For a multiple-choice question the engine
+reads the next-token logits for the option letters instead of generating text.
+The resulting option probabilities are averaged over several orderings of the
+options to reduce letter and position bias (Algorithm~\ref{alg:mcscore}), and
+are later used by the reasoning module.
+
+\begin{algorithm}[htbp]
+\caption{Debiased multiple-choice scoring}
+\label{alg:mcscore}
+\begin{algorithmic}[1]
+\Require Frame $F$; question $q$; options $o_1,\dots,o_n$; context $c$; number of orderings $k$
+\Ensure Probabilities $p_1,\dots,p_n$ with $\sum_i p_i = 1$
+\If{$n = 1$}
+  \State \Return $(1)$
+\EndIf
+\State $\Pi \gets \{\text{identity order}\}$; if $k \geq 2$, add the reversed order and $k-2$ cyclic shifts
+\State $p \gets (0,\dots,0)$
+\ForAll{orderings $\pi \in \Pi$}
+  \State $\mathit{prompt} \gets c + q +$ one line ``letter$_i$. $o_{\pi(i)}$'' for each option
+  \State append ``Answer with the letter of the best option.'' to $\mathit{prompt}$
+  \State $z \gets$ next-token logits of SmolVLM for $(F, \mathit{prompt})$
+  \For{$i = 1$ \textbf{to} $n$}
+    \State $\ell_i \gets \max_{t \in \text{tokens}(\text{letter}_i)} z_t$
+  \EndFor
+  \State $s \gets \operatorname{softmax}(\ell)$
+  \For{$i = 1$ \textbf{to} $n$}
+    \State $p_{\pi(i)} \gets p_{\pi(i)} + s_i$ \Comment{map back to the original option}
+  \EndFor
+\EndFor
+\State \Return $p / |\Pi|$
+\end{algorithmic}
+\end{algorithm}
+
+\section{Fine-Tuning SmolVLM on VCR}
+\label{sec:finetune}
+
+Used zero-shot, SmolVLM sometimes gives reasons that the image does not support.
+To adapt it to commonsense reasoning about people, the model is fine-tuned on
+the VCR dataset~\cite{zellers2019vcr} with LoRA~\cite{hu2022lora}
+(Equation~\ref{eq:lora}). Low-rank adapters of rank 16 are added to the
+attention and feed-forward projections of the language model, while the SigLIP
+vision encoder and the connector stay frozen, so only a small fraction of the
+parameters is trained (approximately \fillin{confirm with
+\code{print\_trainable\_parameters()}} trainable parameters).
+
+\paragraph{Data preparation.} The people and objects referred to in each VCR
+question are drawn on the image as labelled boxes (\emph{person1},
+\emph{person2}, and so on), and the question text uses the same tags. Three
+kinds of training example are built from each question: multiple-choice
+question answering (\QtoA), multiple-choice selection of the rationale for the
+correct answer (\QAtoR), and a free-form answer followed by its visual reason.
+The multiple-choice prompts are word for word the prompts used by the option
+scoring of Algorithm~\ref{alg:mcscore}, so training directly sharpens the
+probabilities that the reasoning module fuses. The order of the options is
+shuffled so that no letter is favoured, and the loss is computed only on the
+answer tokens.
+
+\paragraph{Training and checkpoint selection.} The model is trained for 20
+epochs. After every epoch the adapter is saved and scored on a selection set of
+VCR validation questions, and the epoch with the highest \QtoAR{} accuracy is
+kept; ties are broken by higher \QtoA{} accuracy and then by the earlier epoch.
+The final accuracy is measured on a separate test set of held-out validation
+questions, so the choice of epoch does not bias the reported result
+(Algorithm~\ref{alg:lora}). In the completed run, epoch 11 was selected. The
+selected adapter is merged into the base weights when the model is loaded
+through \path{configs/finetuned.yaml}, so inference with the fine-tuned model is
+as fast as with the base model.
+
+\paragraph{Implementation.} The procedure is implemented in
+\path{finetune/train_vcr_lora.py}. The script streams VCR images from the
+dataset's Parquet files, draws the labelled boxes, builds the three kinds of
+training example and caches the prepared data. It saves a checkpoint every 50
+steps so that an interrupted run can be resumed, and records the training loss,
+the per-epoch selection accuracy and the final test accuracy. After the run,
+\path{install_adapter.py} copies the selected adapter into the project. The
+configuration is listed in Table~\ref{tab:ftconfig}.
+
+\begin{table}[htbp]
+\centering
+\caption{Fine-tuning configuration}
+\label{tab:ftconfig}
+\small
+\begin{tabularx}{\textwidth}{@{}p{4cm}L@{}}
+\toprule
+\textbf{Setting} & \textbf{Value}\\
+\midrule
+Base model & \code{HuggingFaceTB/SmolVLM-Instruct} (2.2B parameters)\\
+Adapter & LoRA, rank 16, alpha 32, dropout 0.05\\
+Adapted layers & Query, key, value, output, gate, up and down projections of the language model\\
+Frozen components & SigLIP vision encoder and connector\\
+Training data & Hugging Face VCR dataset (\QtoA, \QAtoR{} and explanation examples)\\
+Image resolution & Longest edge 768 pixels\\
+Batch size & 2, with gradient accumulation over 8 steps (effective batch of 16)\\
+Optimiser & AdamW, learning rate $10^{-4}$, cosine schedule with 5\% warm-up\\
+Training length & 20 epochs of 75 steps (1,500 optimiser steps)\\
+Checkpoint selection & Best \QtoAR{} on selection questions: epoch 11\\
+Test set & 300 held-out VCR validation questions\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\begin{algorithm}[htbp]
+\caption{LoRA fine-tuning with best-epoch selection}
+\label{alg:lora}
+\begin{algorithmic}[1]
+\Require Base model $M$; training examples $X$; selection set $S_{\text{sel}}$; test set $S_{\text{test}}$; number of epochs $E = 20$
+\Ensure Selected adapter $A^*$; test accuracy before and after fine-tuning
+\State add LoRA adapters to the language model of $M$; freeze all other weights
+\State $r_{\text{base}} \gets \textsc{Evaluate}(M \text{ without adapters}, S_{\text{test}})$
+\For{$e = 1$ \textbf{to} $E$}
+  \ForAll{mini-batches $B \subset X$}
+    \State update the adapters to minimise the cross-entropy of the answer tokens of $B$
+  \EndFor
+  \State $A_e \gets$ current adapters;\; $r_e \gets \textsc{Evaluate}(M + A_e, S_{\text{sel}})$
+\EndFor
+\State $e^* \gets \arg\max_e \big(r_e.\text{\QtoAR},\; r_e.\text{\QtoA},\; -e\big)$ \Comment{ties: higher \QtoA, then earlier epoch}
+\State $A^* \gets A_{e^*}$;\; $r_{\text{ft}} \gets \textsc{Evaluate}(M + A^*, S_{\text{test}})$
+\State \Return $A^*, r_{\text{base}}, r_{\text{ft}}$
+\end{algorithmic}
+\end{algorithm}
+
+\section{ConceptNet Commonsense Enrichment}
+\label{sec:conceptnet}
+
+Visual observations alone may not be enough to distinguish semantically similar
+interactions. The enrichment module uses ConceptNet~\cite{speer2017conceptnet}
+to add commonsense knowledge to the visual concepts and produces evidence that
+is fused into the final prediction. It is divided into a client layer, which
+handles backend access, caching, term normalisation and phrase back-off, and an
+enrichment layer, which assigns salience, filters evidence and computes label
+support.
+
+\paragraph{Key-term extraction.} Candidate terms are collected from the actions,
+gestures, roles, objects and setting identified by the VLM, from its description
+and draft answers, and from the user's question. Each term receives a salience
+weight, highest for interaction-relevant kinds such as actions (1.0) and
+gestures (0.9).
+
+\paragraph{Backend.} Three backends are supported: a local SQLite copy of
+ConceptNet, the public ConceptNet API with a persistent on-disk cache, and an
+offline mode in which taxonomy-based keyword matching remains available. The
+local backend is preferred for reproducibility whenever the database is present.
+An unknown phrase such as ``shaking hands'' is retried as \code{shake\_hands}
+and then as its head word.
+
+\paragraph{Relevance filtering.} For each term the module retrieves its edges
+and filters them by relation type and weight. Facts that link the term to the
+anchor concepts of the social-interaction labels, or to other concepts observed
+in the same image, are ranked highest. Generic hub concepts, which are connected
+to almost everything, are suppressed because they carry little discriminative
+value.
+
+\paragraph{Label support and ambiguity resolution.} For each activity,
+relationship and intention label, the module calculates how strongly the
+evidence supports it (Algorithm~\ref{alg:support}). A term contributes support
+if it is one of the label's anchor concepts, if a direct edge connects it to an
+anchor, if its two-hop neighbourhood overlaps that of the label, or if it
+matches one of the label's keywords, weighted by inverse document frequency.
+Negative relations such as \emph{Antonym} and \emph{DistinctFrom} reduce the
+support. The module therefore produces a numerical support score for every label
+together with readable evidence paths, and combines the support with the match
+to the VLM draft to produce a preliminary disambiguated label for each task
+(Algorithm~\ref{alg:enrich}). The taxonomy, including each label's anchors and
+keywords, is kept in \path{configs/taxonomy.yaml} so that it can be changed
+without modifying the code.
+
+\begin{algorithm}[htbp]
+\caption{ConceptNet commonsense enrichment}
+\label{alg:enrich}
+\begin{algorithmic}[1]
+\Require Visual concepts $V$; draft $D$; optional question $Q$; taxonomy $\mathcal{T}$
+\Ensure Facts $\mathcal{F}$; support $S$; draft match $M$; evidence; disambiguated labels $\hat{L}$
+\State $E \gets$ terms from $V$, $D$ and $Q$, each with a salience (action 1.0, gesture 0.9, role 0.9, object 0.7, setting 0.6, caption 0.5); keep the top 20
+\ForAll{terms $e \in E$}
+  \State $(c_e, \mathit{edges}_e) \gets \textsc{Resolve}(e)$ \Comment{phrase $\rightarrow$ lemma $\rightarrow$ head word}
+  \If{$c_e$ is shorter than $e$}
+    \State $\mathrm{salience}(e) \gets 0.5 \cdot \mathrm{salience}(e)$ \Comment{backed-off sense is less reliable}
+  \EndIf
+  \State $P_e[v] \gets w_{\text{rel}} \cdot (1 - e^{-\text{weight}})$ for each neighbour $v$ that is not a generic hub
+  \State $N_e \gets$ neighbours linked by \emph{Antonym}, \emph{DistinctFrom} or \emph{Not*} relations
+\EndFor
+\State $\mathcal{F} \gets$ top 6 facts per term, ranked by relevance ($\times 2$ if the neighbour is a label anchor, $\times 1.5$ if it is another observed concept); keep the top 40
+\ForAll{tasks $\tau \in \{\text{activity, relationship, intention}\}$}
+  \ForAll{labels $L \in \mathcal{T}[\tau]$}
+    \State $S_\tau(L) \gets \dfrac{\sum_e w_{e,\tau}\, \textsc{Score}(e, L)}{\sum_e w_{e,\tau}}$ \Comment{Algorithm~\ref{alg:support}}
+    \State $M_\tau(L) \gets \max\big(\mathrm{lex}(D_\tau, L),\; 0.8 \max_{e \in \text{draft}} \textsc{Score}(e, L)\big)$
+  \EndFor
+  \State $S_\tau \gets S_\tau / \max\big(\max_L S_\tau(L),\, 0.3\big)$
+  \State $\hat{L}_\tau \gets \arg\max_L \big(S_\tau(L) + M_\tau(L)\big)$
+\EndFor
+\State \Return $\mathcal{F}, S, M$, evidence paths, $\hat{L}$
+\end{algorithmic}
+\end{algorithm}
+
+Here $w_{e,\tau}$ is the salience of term $e$ multiplied by the weight of its
+kind for task $\tau$; for example, roles count most for the relationship task
+and actions most for the activity task.
+
+\begin{algorithm}[htbp]
+\caption{Support of one evidence term for one label}
+\label{alg:support}
+\begin{algorithmic}[1]
+\Require Term $e$ with concept $c_e$, neighbour profile $P_e$ and negative neighbours $N_e$; label $L$ with anchors $A_L$, lexicon $X_L$ and neighbour profile $P_L$
+\Ensure Support score $s$
+\If{$c_e \in A_L$}
+  \State \Return $1.0$ \Comment{exact anchor}
+\EndIf
+\State $s \gets 0$
+\ForAll{anchors $a \in A_L$}
+  \If{$a \in P_e$}
+    \State $s \gets \max(s,\, 0.9\, P_e[a])$ \Comment{direct edge}
+  \EndIf
+\EndFor
+\State $s \gets \max\big(s,\; 0.6 \cdot \min(1,\, 2.5 \cos(P_e, P_L))\big)$ \Comment{two-hop overlap}
+\State $H \gets \mathrm{words}(e) \cap X_L$
+\If{$H \neq \emptyset$}
+  \State $s \gets \max\big(s,\; 0.6 / \min_{w \in H} \mathrm{df}(w)\big)$ \Comment{keyword, IDF-weighted}
+\EndIf
+\If{$N_e \cap A_L \neq \emptyset$}
+  \State $s \gets s - 0.5$ \Comment{contradicting relation}
+\EndIf
+\State \Return $s$
+\end{algorithmic}
+\end{algorithm}
+
+\section{Social Interaction Reasoning}
+\label{sec:reasoning}
+
+The Social Interaction Reasoning module, \code{SocialInteractionReasoner}, is
+the fusion point of Phase I. It combines the visual concepts, the commonsense
+evidence, the VLM draft and the optional user question to predict the social
+interaction.
+
+\paragraph{Context fusion.} The module builds a structured context from the
+scene description, the number of people and their descriptions, the actions,
+gestures, objects and setting identified by the VLM, a selection of the most
+relevant ConceptNet facts, and the user's question. This context accompanies
+the image in every prompt that the module sends to the VLM.
+
+\paragraph{Sequential prediction.} The three tasks are inferred in the order
+activity, relationship, intention. The predicted activity is added to the
+context for relationship inference, and both the activity and the relationship
+are added to the context for intention inference, so that each later prediction
+is consistent with the earlier ones.
+
+\paragraph{Candidate shortlisting.} ConceptNet support, VLM draft matching and
+lexical evidence are combined into a prior over the taxonomy labels. When the
+prior is informative, only the highest-ranked candidates are shortlisted;
+otherwise the complete label set is passed to the VLM.
+
+\paragraph{Log-linear fusion.} Let $p_{\text{VLM}}(L)$ be the VLM probability
+for label $L$, $p_{\text{CN}}(L)$ the normalised ConceptNet support, and
+$m_{\text{draft}}(L)$ the match between the VLM draft and the label. The module
+computes
+\begin{equation}
+  \log P(L) \;\propto\; w_{\text{VLM}} \log p_{\text{VLM}}(L)
+  + w_{\text{CN}} \log p_{\text{CN}}(L)
+  + w_{\text{draft}}\, m_{\text{draft}}(L)
+  \label{eq:fusion}
+\end{equation}
+with default weights $w_{\text{VLM}} = 1.0$, $w_{\text{CN}} = 0.5$ and
+$w_{\text{draft}} = 1.0$. The resulting distribution gives the highest-scoring
+label with its confidence, the ranked alternatives with their component
+probabilities, and the evidence behind the prediction. A prediction is marked
+ambiguous when the probability margin between the top two labels is below 0.15.
+Algorithm~\ref{alg:infertask} infers one task in this way.
+
+\begin{algorithm}[htbp]
+\caption{Inference of one task with log-linear fusion}
+\label{alg:infertask}
+\begin{algorithmic}[1]
+\Require Task $\tau$; frame $F$; context $c$; visual concepts $V$; support $S_\tau$; draft match $M_\tau$; disambiguated label $\hat{L}_\tau$
+\Ensure Prediction for $\tau$: label, confidence, ambiguity flag, alternatives, evidence
+\State $\mathcal{L} \gets$ labels of $\tau$ (excluding \code{none\_single} for relationship)
+\ForAll{$L \in \mathcal{L}$}
+  \State $\mathit{prior}(L) \gets S_\tau(L) + 1.5\, M_\tau(L) + 0.3\, \mathrm{lex}(\text{scene text}, L)$
+\EndFor
+\If{fewer than 3 labels have $\mathit{prior} > 0.05$}
+  \State $C \gets \mathcal{L}$ \Comment{no reliable prior: VLM sees all labels}
+\Else
+  \State $C \gets$ the 8 labels with the highest prior, always including $\hat{L}_\tau$
+\EndIf
+\State $p_{\text{VLM}} \gets \textsc{ScoreOptions}(F, \text{question}_\tau, \text{descriptions of } C, c)$ \Comment{Algorithm~\ref{alg:mcscore}}
+\If{$\max_{L \in C} S_\tau(L) < 10^{-3}$}
+  \State $p_{\text{CN}} \gets$ uniform over $C$
+\Else
+  \State $p_{\text{CN}} \gets \operatorname{softmax}(S_\tau / T)$, $T = 0.2$
+\EndIf
+\ForAll{$L \in C$}
+  \State $z(L) \gets w_{\text{VLM}} \log p_{\text{VLM}}(L) + w_{\text{CN}} \log p_{\text{CN}}(L) + w_{\text{draft}}\, M_\tau(L)$
+\EndFor
+\State $P \gets \operatorname{softmax}(z)$; sort $C$ by $P$ in descending order
+\State $L^* \gets C_1$;\; $\mathit{ambiguous} \gets \big(P(C_1) - P(C_2) < 0.15\big)$
+\State \Return $\big(L^*, P(L^*), \mathit{ambiguous}, C \text{ with } P, p_{\text{VLM}}, p_{\text{CN}}, M_\tau, \text{evidence for } L^*\big)$
+\end{algorithmic}
+\end{algorithm}
+
+\paragraph{Special cases and explanation.} Scenes with zero or one detected
+person are handled explicitly. When only one person is present, the relationship
+is set to \code{none\_single}; when no people are detected, the system returns
+a no-interaction prediction instead of inferring a social relationship. Once the
+three tasks are inferred, an explanation is generated by a prompt that asks the
+VLM to relate the prediction to the visible people, gestures, facial
+expressions, objects and setting. Algorithm~\ref{alg:reason} applies these steps
+to the three tasks in sequence.
+
+\begin{algorithm}[htbp]
+\caption{Social interaction reasoning}
+\label{alg:reason}
+\begin{algorithmic}[1]
+\Require Frame $F$; visual concepts $V$; draft $D$; commonsense result $R$; optional question $Q$ and options $O$
+\Ensure Social prediction: activity, relationship, intention, explanation, answer
+\State $c \gets \textsc{Fuse}(V, R, Q)$ \Comment{caption, concepts, top ConceptNet facts, question}
+\If{$V.\mathit{people} = 0$}
+  \State \Return no-interaction prediction
+\EndIf
+\State $A \gets \textsc{InferTask}(\text{activity}, F, c)$ \Comment{Algorithm~\ref{alg:infertask}}
+\If{$V.\mathit{people} = 1$}
+  \State $\mathit{Rel} \gets$ \code{none\_single} with confidence 1
+\Else
+  \State $\mathit{Rel} \gets \textsc{InferTask}(\text{relationship}, F, c + \text{``The people are } A\text{.''})$
+\EndIf
+\State $I \gets \textsc{InferTask}(\text{intention}, F, c + \text{``The people are } A\text{. They are most likely } \mathit{Rel}\text{.''})$
+\State $\mathit{pr} \gets$ statement of $(A, \mathit{Rel}, I)$ + top ConceptNet facts + ``explain which visible evidence supports this''
+\State $\mathit{Ex} \gets \textsc{Generate}(F, \mathit{pr})$
+\If{$Q \neq \textsc{null}$ \textbf{and} $O \neq \textsc{null}$}
+  \State $p \gets \textsc{ScoreOptions}(F, Q, O, c)$;\; $\mathit{ans} \gets O_{\arg\max p}$
+\ElsIf{$Q \neq \textsc{null}$}
+  \State $\mathit{ans} \gets D.\mathit{answer}$
+\EndIf
+\State \Return $(A, \mathit{Rel}, I, \mathit{Ex}, \mathit{ans})$ with the supporting evidence
+\end{algorithmic}
+\end{algorithm}
+
+\section{Phase I Integration}
+
+The four modules are integrated through the \code{Phase1Pipeline} class, which
+runs them in sequence (Algorithm~\ref{alg:pipeline}). The modules exchange
+structured dataclasses rather than free text: \code{PreprocessedFrame} carries
+the output of preprocessing, \code{VisualConcepts} and \code{DraftReasoning}
+carry the output of the VLM, \code{CommonsenseResult} carries the ConceptNet
+evidence, and \code{SocialPrediction} carries the final prediction. Together
+these form a \code{Phase1Result}, which can be serialised to JSON with all of
+its evidence and module timings.
+
+\begin{algorithm}[htbp]
+\caption{Phase I pipeline}
+\label{alg:pipeline}
+\begin{algorithmic}[1]
+\Require Input source $S$, optional question $Q$, optional answer options $O$
+\Ensure Phase I result: frame, visual concepts, draft, commonsense evidence, prediction, timings
+\State $F \gets \textsc{Preprocess}(S)$ \Comment{Algorithm~\ref{alg:preprocess}}
+\State $(V, D) \gets \textsc{SmolVLM}(F, Q)$ \Comment{Algorithm~\ref{alg:vlm}}
+\State $R \gets \textsc{EnrichWithConceptNet}(V, D, Q)$ \Comment{Algorithm~\ref{alg:enrich}}
+\State $P \gets \textsc{ReasonSocialInteraction}(F, V, D, R, Q, O)$ \Comment{Algorithm~\ref{alg:reason}}
+\State \Return $(F, V, D, R, P)$ with the time taken by each stage
+\end{algorithmic}
+\end{algorithm}
+
+\section{Backend and User Interface}
+
+A FastAPI backend loads the Phase I pipeline once and keeps the model resident
+in memory. Each analysis runs as a background job, and the React frontend polls
+the job to show which module is currently running. The endpoints are listed in
+Appendix~\ref{app:api}.
+
+The interface accepts an uploaded image, a photo captured from the live camera
+or an uploaded video, which is analysed at its key moments, together with an
+optional question. Results are presented as prediction cards for the activity,
+relationship and intention, each with its confidence value and alternatives,
+followed by the generated explanation, the supporting ConceptNet evidence, the
+visual concepts identified by the VLM and the processing time. The full result
+can be downloaded as a JSON report, and a history strip gives access to earlier
+analyses from the same session. This interface is an operational demonstration
+of Phase I and is distinct from the Phase II explainability dashboard.
+
+\section{Planned Phase II Extension}
+\label{sec:phase2plan}
+
+The Phase I data flow already carries what Phase II needs: the normalised tensor
+of Equation~\ref{eq:norm} for visual attribution, access to the model through
+\code{SmolVLMEngine}, the structured prediction targets, the textual rationale
+and the ConceptNet evidence. Phase II will add:
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{Visual explanation path:} Grad-CAM~\cite{selvaraju2017gradcam}
+  maps for each predicted label, and extraction of the concepts present in the
+  most activated regions, giving a visual concept set $\mathcal{V}$.
+\item \textbf{Textual explanation path:} extraction of the concepts mentioned in
+  the generated explanation, giving a textual concept set $\mathcal{T}$.
+\item \textbf{Cross-modal consistency:} the Jaccard overlap of the two sets,
+  \begin{equation}
+    \mathrm{CMC} = \frac{|\mathcal{T} \cap \mathcal{V}|}{|\mathcal{T} \cup \mathcal{V}|}
+    \label{eq:cmc}
+  \end{equation}
+\item \textbf{Faithfulness evaluation:} the Insertion--Deletion
+  metric~\cite{petsiuk2018rise} and the Pointing Game~\cite{zhang2018excitation}.
+\item \textbf{Explainability dashboard:} the input frame, the predicted
+  interaction, the three labels and the consistency score in a single view.
+\end{itemize}
+
+%% =====================================================================
+%% CHAPTER 4  EXPERIMENTAL RESULTS AND PERFORMANCE ANALYSIS
+%% =====================================================================
+\chapter{Experimental Results and Performance Analysis}
+\label{ch:results}
+
+This chapter describes the data and the computing environment used, the
+experiments conducted in Phase I, and an analysis of their results.
+
+\section{Dataset Description}
+
+\subsection{Visual Commonsense Reasoning (VCR) Dataset}
+
+The VCR dataset~\cite{zellers2019vcr} contains about 290,000 multiple-choice
+questions over about 110,000 images taken from movie scenes, drawn from the
+LSMDC~\cite{rohrbach2017lsmdc} and MovieClips collections. Each question comes
+with four candidate answers and, for the correct answer, four candidate
+rationales. Objects and people in each image are detected and referred to in
+the text by tags, for example ``Why is [person1] pointing at [person2]?''. The
+questions cover explanations, activities, mental states, roles, temporal
+inferences and hypothetical situations, which makes them a close match to the
+activity, relationship and intention targets of this project. The wrong options
+are produced by Adversarial Matching, so they are relevant to the scene and
+cannot be rejected on surface cues alone.
+
+This project uses the Hugging Face release of VCR, read directly from its
+Parquet files. Since the labels of the official VCR test split are not public,
+all evaluation questions are drawn from the official validation split. Three
+disjoint sets are used:
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{Training set:} questions from the VCR training split, each
+  expanded into a \QtoA, a \QAtoR{} and a free-form explanation example. One
+  epoch is 75 optimiser steps with an effective batch of 16, that is
+  approximately 1,200 training examples per epoch
+  (\fillin{number of VCR training questions used}).
+\item \textbf{Selection set:} \fillin{N} VCR validation questions, used only to
+  choose the epoch.
+\item \textbf{Test set:} 300 further VCR validation questions, used neither for
+  training nor for choosing the epoch.
+\end{itemize}
+
+\subsection{ConceptNet}
+
+ConceptNet 5.5~\cite{speer2017conceptnet} is used as the commonsense knowledge
+source. A local SQLite database built from the ConceptNet assertions
+(\fillin{English subset; number of edges / size on disk}) allows offline and
+reproducible lookups, with the public ConceptNet API and an on-disk cache as a
+fallback.
+
+\subsection{Social Interaction Taxonomy}
+
+The label space for the three prediction tasks is defined in
+\path{configs/taxonomy.yaml}. Each label has a description, a set of ConceptNet
+anchor concepts and a keyword lexicon. Examples of labels are
+\emph{Performing}, \emph{Watching together} and \emph{Photographing} for the
+activity; \emph{Performer or speaker and audience}, \emph{Teammates or members
+of the same group}, \emph{Doctor (or nurse) and patient} and
+\code{none\_single} for the relationship; and \emph{To entertain or perform for
+others}, \emph{To socialise, relax and spend time together} and \emph{To
+comfort, console or emotionally support someone} for the intention. The
+taxonomy contains \fillin{a} activity, \fillin{b} relationship and \fillin{c}
+intention labels.
+
+\subsection{Test Fixtures and Demonstration Data}
+
+The automated tests use synthetic images, a deterministic stand-in for the VLM
+and a small ConceptNet graph, so they run without downloading the model. The
+qualitative demonstration uses real photographs, including the concert
+photograph of Section~\ref{sec:demo}.
+
+\section{Ecosystem: Hardware and Software Specifications}
+
+\subsection{Hardware}
+
+Fine-tuning was carried out in a Kaggle notebook; the demonstration and the
+interactive experiments were run locally. Table~\ref{tab:hardware} lists the
+hardware used.
+
+\begin{table}[htbp]
+\centering
+\caption{Hardware specifications}
+\label{tab:hardware}
+\small
+\begin{tabularx}{\textwidth}{@{}p{3.2cm}LL@{}}
+\toprule
+\textbf{Component} & \textbf{Fine-tuning (Kaggle)} & \textbf{Inference and demonstration}\\
+\midrule
+Processor & \fillin{CPU} & \fillin{CPU / SoC}\\
+GPU / accelerator & \fillin{e.g. NVIDIA GPU model, memory} & \fillin{CUDA / MPS / CPU}\\
+Memory (RAM) & \fillin{GB} & \fillin{GB}\\
+Storage & \fillin{GB} & \fillin{GB}\\
+Operating system & Linux (Kaggle runtime) & \fillin{OS and version}\\
+Training time & \fillin{hours for 20 epochs} & --\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Software}
+
+The system is organised as a Python package with separate modules for
+preprocessing, VLM inference, commonsense enrichment, reasoning, configuration,
+data structures and visualisation. Table~\ref{tab:software} lists the main
+software components.
+
+\begin{table}[htbp]
+\centering
+\caption{Software specifications}
+\label{tab:software}
+\small
+\begin{tabularx}{\textwidth}{@{}p{4.2cm}L@{}}
+\toprule
+\textbf{Component} & \textbf{Technology}\\
+\midrule
+Programming language & Python \fillin{version}\\
+Image/video processing & OpenCV~\cite{bradski2000opencv}, NumPy, PIL\\
+Vision-language model & SmolVLM with Hugging Face Transformers~\cite{wolf2020transformers}\\
+Deep learning framework & PyTorch~\cite{paszke2019pytorch}\\
+Fine-tuning & PEFT (LoRA), Kaggle notebook\\
+Natural-language processing & spaCy and project text utilities\\
+Commonsense knowledge & ConceptNet, SQLite database and cache\\
+Reasoning & Python, NumPy, configurable YAML taxonomy\\
+Backend & FastAPI, Uvicorn\\
+Frontend & React, Vite, JavaScript\\
+Testing & pytest\\
+Configuration & YAML\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Experiments Conducted}
+
+Five experiments were conducted in Phase I.
+
+\begin{enumerate}[label=\textbf{E\arabic*.},leftmargin=*]
+\item \textbf{Functional validation.} The automated test suite was run with
+  pytest to check each module and the complete pipeline.
+\item \textbf{LoRA fine-tuning with epoch selection.} SmolVLM was fine-tuned
+  for 20 epochs with the configuration of Table~\ref{tab:ftconfig}, and the
+  adapter was evaluated on the selection set after every epoch.
+\item \textbf{Quantitative test evaluation.} The base model and the selected
+  fine-tuned model were evaluated on the same 300 held-out test questions on
+  \QtoA, \QAtoR{} and \QtoAR.
+\item \textbf{Qualitative comparison of explanations.} The free-form answers
+  and reasons of the two models were compared for test questions.
+\item \textbf{End-to-end demonstration.} The integrated pipeline was run through
+  the web interface on real photographs to inspect the predictions, the evidence
+  and the processing time.
+\end{enumerate}
+
+\section{Performance Analysis}
+
+\subsection{Functional Validation (E1)}
+
+All 23 automated tests passed (Table~\ref{tab:tests}). The preprocessing tests
+check image loading, resizing, normalisation, low-light enhancement, blur
+detection and frame sampling. The ConceptNet tests check term resolution,
+enrichment, label support and access to the local SQLite database, and further
+tests cover text normalisation and taxonomy loading. The end-to-end tests run
+the complete pipeline and check that commonsense evidence resolves the
+prediction when the VLM is uncertain, that scenes with one person or with no
+people are handled correctly, and that multiple-choice questions are answered.
+The video tests check key-moment selection and summarisation.
+
+\begin{table}[htbp]
+\centering
+\caption{Automated validation results}
+\label{tab:tests}
+\small
+\begin{tabular}{@{}lcc@{}}
+\toprule
+\textbf{Test category} & \textbf{Tests} & \textbf{Result}\\
+\midrule
+Preprocessing & 7 & Passed\\
+ConceptNet & 3 & Passed\\
+Text and taxonomy & 5 & Passed\\
+End-to-end Phase I pipeline & 5 & Passed\\
+Video key-moment selection & 3 & Passed\\
+\midrule
+\textbf{Total} & \textbf{23} & \textbf{23 passed}\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+These tests confirm that the module interfaces work together under controlled
+conditions: an input flows through preprocessing, VLM stand-in inference,
+ConceptNet enrichment and social reasoning to a structured prediction. Because
+the VLM is replaced by a deterministic stand-in, they validate the software, not
+the accuracy of the model; accuracy is measured in E2 and E3.
+
+\subsection{Training Convergence (E2)}
+
+The training loss is shown per optimiser step in Figure~\ref{fig:lossstep} and
+per epoch on a logarithmic scale in Figure~\ref{fig:lossepoch}. Averaged per
+epoch, it falls from 2.03 in the first epoch to 0.08 in epoch 7 and 0.013 in
+epoch 11, and it is 0.001 or less from epoch 15 onwards. The loss therefore
+converges well before the end of the run.
+
+\begin{figure}[htbp]
+\centering
+\figimg{0.85\linewidth}{figures/loss_curve.png}
+\caption{Training loss of LoRA fine-tuning on VCR over 1,500 optimiser steps (20 epochs)}
+\label{fig:lossstep}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{semilogyaxis}[
+  width=0.8\linewidth, height=5.6cm,
+  xlabel={Epoch}, ylabel={Mean training loss},
+  xmin=0.5, xmax=11.5, xtick={1,...,11},
+  ymin=0.008, ymax=6,
+  ymajorgrids, grid style={gray!20},
+  axis line style={gray!60}, tick style={gray!60},
+  every axis label/.style={font=\small}, ticklabel style={font=\footnotesize},
+]
+\addplot[seriesA, line width=1.2pt, mark=*, mark size=1.8pt] coordinates {
+  (1,2.029) (2,1.510) (3,1.124) (4,0.684) (5,0.323) (6,0.146)
+  (7,0.079) (8,0.050) (9,0.029) (10,0.018) (11,0.013)};
+\node[font=\footnotesize, anchor=west] at (axis cs:1.2,2.029) {2.03};
+\node[font=\footnotesize, anchor=east] at (axis cs:10.8,0.013) {0.013};
+\end{semilogyaxis}
+\end{tikzpicture}
+\caption[Mean training loss per epoch, epochs 1--11]{Mean training loss per
+epoch for epochs 1--11 (logarithmic scale). Epochs 12--20 range from 0.006 to
+0.001.}
+\label{fig:lossepoch}
+\end{figure}
+
+\subsection{Epoch Selection (E2)}
+
+The selection-set accuracy after every epoch is shown in
+Figure~\ref{fig:epochacc} and Table~\ref{tab:epochs}. Accuracy rises quickly
+over the first three epochs, with \QtoAR{} increasing from 33\% to 46\%, and
+then fluctuates between 43\% and 48\% while the training loss keeps falling.
+From epoch 12 onwards the accuracy is identical in every epoch, because the
+training loss is close to zero and the adapters no longer change.
+
+Epochs 9 and 11 share the highest \QtoAR{} accuracy of 48\%. Epoch 11 is
+selected because its \QtoA{} accuracy is higher (63\% against 62\%), and its
+\QAtoR{} accuracy of 65\% is the second highest of the run. The final model
+therefore uses the epoch-11 adapter rather than the adapter from the last epoch.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  width=\linewidth, height=7cm,
+  xlabel={Epoch}, ylabel={Selection-set accuracy (\%)},
+  xmin=0.5, xmax=20.5, xtick={1,...,20},
+  ymin=30, ymax=70,
+  ymajorgrids, grid style={gray!20},
+  axis line style={gray!60}, tick style={gray!60},
+  every axis label/.style={font=\small}, ticklabel style={font=\footnotesize},
+  legend style={at={(0.5,1.03)}, anchor=south, legend columns=3,
+                draw=none, font=\footnotesize, /tikz/every even column/.append style={column sep=10pt}},
+]
+\addplot[seriesA, line width=1.2pt, mark=*, mark size=1.8pt] coordinates {
+  (1,52) (2,61) (3,63) (4,60) (5,58) (6,60) (7,63) (8,57) (9,62) (10,59) (11,63)
+  (12,62) (13,62) (14,62) (15,62) (16,62) (17,62) (18,62) (19,62) (20,62)};
+\addlegendentry{\QtoA}
+\addplot[seriesB, line width=1.2pt, mark=square*, mark size=1.7pt] coordinates {
+  (1,57) (2,59) (3,62) (4,63) (5,63) (6,62) (7,67) (8,62) (9,63) (10,62) (11,65)
+  (12,64) (13,64) (14,64) (15,64) (16,64) (17,64) (18,64) (19,64) (20,64)};
+\addlegendentry{\QAtoR}
+\addplot[seriesC, line width=1.2pt, mark=triangle*, mark size=2.2pt] coordinates {
+  (1,33) (2,41) (3,46) (4,43) (5,43) (6,44) (7,47) (8,43) (9,48) (10,44) (11,48)
+  (12,47) (13,47) (14,47) (15,47) (16,47) (17,47) (18,47) (19,47) (20,47)};
+\addlegendentry{\QtoAR}
+\draw[gray, dashed, thick] (axis cs:11,30) -- (axis cs:11,70);
+\node[font=\footnotesize, anchor=north west, fill=white, inner sep=1pt] at (axis cs:11.15,39) {selected epoch (11)};
+\end{axis}
+\end{tikzpicture}
+\caption{Selection-set accuracy after each epoch; the dashed line marks the selected epoch (11)}
+\label{fig:epochacc}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\caption{Per-epoch accuracy on the selection set}
+\label{tab:epochs}
+\small
+\begin{tabular}{@{}ccccc@{}}
+\toprule
+\textbf{Epoch} & \textbf{Train loss} & \textbf{\QtoA{} (\%)} & \textbf{\QAtoR{} (\%)} & \textbf{\QtoAR{} (\%)}\\
+\midrule
+1 & 2.029 & 52 & 57 & 33\\
+2 & 1.510 & 61 & 59 & 41\\
+3 & 1.124 & 63 & 62 & 46\\
+4 & 0.684 & 60 & 63 & 43\\
+5 & 0.323 & 58 & 63 & 43\\
+6 & 0.146 & 60 & 62 & 44\\
+7 & 0.079 & 63 & 67 & 47\\
+8 & 0.050 & 57 & 62 & 43\\
+9 & 0.029 & 62 & 63 & 48\\
+10 & 0.018 & 59 & 62 & 44\\
+\rowcolor{phaseone}\textbf{11} & \textbf{0.013} & \textbf{63} & \textbf{65} & \textbf{48}\\
+12--20 & 0.006 -- 0.001 & 62 & 64 & 47\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The separation between the two curves -- training loss approaching zero while
+the selection accuracy stops improving after epoch 3 -- shows that the later
+epochs mostly fit the training examples more closely without generalising
+better. Selecting the epoch on held-out data, rather than using the last
+checkpoint, guards against this.
+
+\subsection{Test Accuracy (E3)}
+
+The base model and the fine-tuned model (epoch 11) were evaluated on the same
+300 held-out validation questions. Table~\ref{tab:testacc} and
+Figure~\ref{fig:testbar} give the results. Fine-tuning improves all three tasks
+by 14 to 17 percentage points, and the \QtoAR{} accuracy more than doubles, from
+15.3\% (46 of 300 questions) to 32.7\% (98 of 300).
+
+\begin{table}[htbp]
+\centering
+\caption{Accuracy on 300 held-out VCR validation questions}
+\label{tab:testacc}
+\small
+\begin{tabular}{@{}lccc@{}}
+\toprule
+\textbf{Model} & \textbf{\QtoA{} (\%)} & \textbf{\QAtoR{} (\%)} & \textbf{\QtoAR{} (\%)}\\
+\midrule
+Chance level & 25.0 & 25.0 & 6.3\\
+SmolVLM-Instruct (base) & 44.7 & 41.3 & 15.3\\
+SmolVLM + LoRA (epoch 11) & \textbf{58.7} & \textbf{57.7} & \textbf{32.7}\\
+\midrule
+Improvement (percentage points) & +14.0 & +16.3 & +17.3\\
+Correct answers, base $\rightarrow$ fine-tuned & 134 $\rightarrow$ 176 & 124 $\rightarrow$ 173 & 46 $\rightarrow$ 98\\
+95\% confidence interval, fine-tuned & $\pm 5.6$ & $\pm 5.6$ & $\pm 5.3$\\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ybar, bar width=16pt, area legend,
+  width=0.8\linewidth, height=6.2cm,
+  symbolic x coords={qa,qar,qtoar},
+  xtick=data, xticklabels={\QtoA, \QAtoR, \QtoAR},
+  enlarge x limits=0.25,
+  ymin=0, ymax=70, ylabel={Test accuracy (\%)},
+  ymajorgrids, grid style={gray!20},
+  axis line style={gray!60}, tick style={gray!60},
+  every axis label/.style={font=\small}, ticklabel style={font=\footnotesize},
+  nodes near coords, nodes near coords style={font=\footnotesize, color=black},
+  every node near coord/.append style={/pgf/number format/fixed, /pgf/number format/precision=1},
+  legend style={at={(0.5,1.03)}, anchor=south, legend columns=2, draw=none,
+                font=\footnotesize, /tikz/every even column/.append style={column sep=10pt}},
+]
+\addplot[fill=neutralbar, draw=none] coordinates {(qa,44.7) (qar,41.3) (qtoar,15.3)};
+\addlegendentry{SmolVLM-Instruct (base)}
+\addplot[fill=seriesA, draw=none] coordinates {(qa,58.7) (qar,57.7) (qtoar,32.7)};
+\addlegendentry{SmolVLM + LoRA (epoch 11)}
+\end{axis}
+\end{tikzpicture}
+\caption{Test accuracy of the base and fine-tuned models on 300 held-out VCR questions}
+\label{fig:testbar}
+\end{figure}
+
+\paragraph{Statistical reliability.} With 300 test questions, the 95\% normal
+approximation interval for an accuracy $\hat{p}$ is
+$\pm 1.96\sqrt{\hat{p}(1-\hat{p})/300}$, which is about $\pm 5.6$ points for
+\QtoA{} and \QAtoR{} and $\pm 5.3$ points for \QtoAR{} of the fine-tuned model
+(Table~\ref{tab:testacc}). The observed improvements of 14 to 17 points are
+well outside these intervals, so the gain from fine-tuning is not an artefact of
+the test sample, although the exact accuracy values carry an uncertainty of a
+few points.
+
+\paragraph{Selection versus test accuracy.} The test accuracy is lower than the
+selection-set accuracy of epoch 11 (63\%, 65\% and 48\%). This is expected: the
+selection set is smaller, and the epoch was chosen because it scored well on
+that set, so its selection accuracy is optimistically biased. This is why the
+result is reported on a separate test set.
+
+\paragraph{Answer and rationale.} If answer and rationale selection were
+independent, the expected \QtoAR{} accuracy would be the product of the \QtoA{}
+and \QAtoR{} accuracies: $0.587 \times 0.577 \approx 33.9\%$ for the fine-tuned
+model, close to the observed 32.7\%, and $0.447 \times 0.413 \approx 18.5\%$ for
+the base model, above the observed 15.3\%. Fine-tuning therefore improves both
+sub-tasks rather than only one, and the remaining errors are spread across both.
+
+\paragraph{Context from the literature.} For reference, the R2C model reported
+65.1\%, 67.3\% and 44.0\% (\QtoA, \QAtoR, \QtoAR) on the full VCR test set, and
+human performance was 91.0\%, 93.0\% and 85.0\%~\cite{zellers2019vcr}. These
+figures are not directly comparable with ours, which are on a 300-question
+sample, and R2C was trained on the full training set with detected object
+features. The comparison shows that a 2.2-billion-parameter general-purpose VLM,
+adapted with LoRA on a small amount of VCR data, reaches about three quarters of
+R2C's joint accuracy while also being able to generate free-form explanations,
+and that a large gap to human performance remains.
+
+\subsection{Qualitative Comparison of Explanations (E4)}
+
+Table~\ref{tab:qualitative} compares the free-form explanations of the two
+models for four test questions. For the violin and quarrel questions, the
+fine-tuned model gives the correct answer together with a visual reason,
+whereas the base model only describes what a person is looking at. For the
+father--son question, the base model states the relationship correctly while
+the fine-tuned model reverses it, although it gives the expected kind of reason
+(the age gap). For the dock question, neither model reaches the reference
+answer. The fine-tuned answers consistently follow the VCR pattern of an answer
+followed by its visual reason.
+
+\begin{table}[htbp]
+\centering
+\caption{Explanations of the base and fine-tuned models for four test questions}
+\label{tab:qualitative}
+\footnotesize
+\renewcommand{\arraystretch}{1.2}
+\begin{tabularx}{\textwidth}{@{}p{1.9cm}L@{}}
+\toprule
+\multicolumn{2}{@{}l}{\textbf{What is person2 doing?}}\\
+Reference & He is playing a violin. He is holding a violin in one hand and applying the bow to it with the other.\\
+Base & Looking at the ship.\\
+Fine-tuned & He is playing a violin. He is holding a violin and a bow.\\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{What is happening between person2 and person1?}}\\
+Reference & They are quarreling. person2 looks tense and stern, person1 looks surprised.\\
+Base & Person2 is looking at person1.\\
+Fine-tuned & person1 is telling person2 something she doesn't like. person2 is looking at person1 with a stern expression.\\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{How do person7 and person1 know each other?}}\\
+Reference & person1 is person7's father. They came in together, and person1 is much older than person7.\\
+Base & Person7 and person1 know each other. Person7 is the son of person1.\\
+Fine-tuned & person7 is person1's father. There is a specific age gap between them, and they are going to embrace.\\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{Why is person1 and person2 running on the dock?}}\\
+Reference & They are trying to board a boat before it leaves. They won tickets on the boat they are trying to reach.\\
+Base & Person1 and person2 are running on the dock because they are trying to catch person5.\\
+Fine-tuned & person1 and person2 are trying to escape. person1 and person2 are running and person1 is carrying person2 up some stairs.\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The father--son example illustrates why Phase II is needed: an explanation can
+cite the right kind of evidence and still reach the wrong conclusion. Checking
+that the cited evidence corresponds to what the model attends to in the image,
+and that the textual and visual explanations agree, is the purpose of the
+cross-modal consistency and faithfulness evaluation.
+
+\subsection{End-to-End Demonstration (E5)}
+\label{sec:demo}
+
+Figure~\ref{fig:uipred} shows the web interface analysing a photograph of a
+singer performing to a crowd at a concert. The system predicts the activity
+\emph{Performing} with 93\% confidence, the relationship \emph{Performer or
+speaker and audience} with 91\% and the intention \emph{To entertain or perform
+for others} with 97\% (Table~\ref{tab:demo}). In each case the next alternative
+receives 3\% or less, so none of the predictions is ambiguous. The generated
+explanation relates the prediction to visible evidence: the singer's
+outstretched arm and microphone, her smile, and the hands of the crowd reaching
+towards her.
+
+\begin{figure}[htbp]
+\centering
+\figimg{\linewidth}{figures/ui_predictions.jpg}
+\caption{Web interface: predictions and explanation for a concert photograph}
+\label{fig:uipred}
+\end{figure}
+
+\begin{table}[htbp]
+\centering
+\caption{Predictions for the concert photograph}
+\label{tab:demo}
+\small
+\begin{tabularx}{\textwidth}{@{}p{2.2cm}p{4.2cm}cL@{}}
+\toprule
+\textbf{Task} & \textbf{Prediction} & \textbf{Conf.} & \textbf{Next alternatives}\\
+\midrule
+Activity & Performing & 93\% & Watching together (3\%), Photographing (1\%)\\
+Relationship & Performer or speaker and audience & 91\% & Teammates (3\%), Doctor and patient (2\%)\\
+Intention & To entertain or perform for others & 97\% & To socialise (2\%), To comfort someone (1\%)\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+The supporting evidence and the scene description are shown in
+Figure~\ref{fig:uievid}. ConceptNet links the observed concepts to the
+predicted labels: ``concert'' and ``sing'' are closely associated with
+performing, a performer is typically found on a stage, and a concert is a kind
+of show. The VLM identified the setting as a concert, the actions as reaching
+out and holding up, the expressions as happy and excited, and the objects as a
+water bottle, a microphone and hands. The number of people reached the system's
+upper limit of 50, since the crowd is larger than that.
+
+\begin{figure}[htbp]
+\centering
+\figimg{\linewidth}{figures/ui_evidence.jpg}
+\caption{Web interface: supporting ConceptNet knowledge and scene description
+for the same photograph}
+\label{fig:uievid}
+\end{figure}
+
+\paragraph{Processing time.} The complete analysis of the concert photograph
+took 33.3 seconds on \fillin{device of Table~\ref{tab:hardware}}. Most of this
+time is spent in the VLM: for a scene with two or more people and no question,
+Algorithm~\ref{alg:vlm} makes eleven generation calls, the explanation adds one
+more, and the option scoring of Algorithm~\ref{alg:mcscore} adds $k$ forward
+passes for each of the three tasks. The preprocessing and ConceptNet stages
+operate on small arrays and a local database, and contribute comparatively
+little. The per-module timings are recorded in every \code{Phase1Result}.
+
+\subsection{Discussion}
+
+Compared with a conventional image-captioning or classification pipeline, the
+Phase I system reasons at three levels. At the \emph{visual} level, it
+identifies the people, objects, actions, gestures and setting of the scene and
+describes them in a caption. At the \emph{commonsense} level, it links these
+observations to ConceptNet relations and label-support paths. At the
+\emph{decision} level, it fuses the VLM probabilities, the commonsense support
+and the draft match into a single prediction. The final prediction is therefore
+not a single sentence from the VLM: it retains the intermediate visual concepts,
+commonsense facts, component probabilities, alternatives and evidence that the
+explainability phase requires.
+
+Table~\ref{tab:status} summarises the status of each Phase I module.
+
+\begin{table}[htbp]
+\centering
+\caption{Phase I implementation status}
+\label{tab:status}
+\small
+\begin{tabularx}{\textwidth}{@{}p{3.6cm}p{2cm}L@{}}
+\toprule
+\textbf{Module} & \textbf{Status} & \textbf{Implemented result}\\
+\midrule
+Input and Preprocessing & Completed & Image/video/live input, quality checks, enhancement, resizing, normalisation and frame sampling\\
+Small Vision-Language Model & Completed & SmolVLM integration, visual concept extraction, draft reasoning, deterministic generation and option scoring\\
+Fine-tuning (offline) & Completed & LoRA fine-tuning on VCR for 20 epochs; epoch 11 selected; \QtoAR{} on 300 test questions raised from 15.3\% to 32.7\%\\
+ConceptNet Commonsense Enrichment & Completed & Concept extraction, ConceptNet lookup, relevance filtering, label support, evidence and ambiguity resolution\\
+Social Interaction Reasoning & Completed & Context fusion, activity/relationship/intention inference, log-linear fusion, confidence, alternatives and explanation generation\\
+Explanation verification and dashboard & Phase II & Planned for the next phase\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Limitations}
+
+\begin{itemize}[leftmargin=*]
+\item The quantitative evaluation measures the fine-tuned VLM on VCR questions.
+  There is not yet a labelled benchmark for the activity, relationship and
+  intention predictions of the complete pipeline, so the end-to-end accuracy of
+  the fused prediction has been assessed only qualitatively.
+\item The fusion weights ($w_{\text{VLM}}$, $w_{\text{CN}}$, $w_{\text{draft}}$)
+  and thresholds are set by hand; their effect has not yet been measured by an
+  ablation study, and the calibration of the reported confidence values has not
+  been measured.
+\item The test set has 300 questions, so the reported accuracies carry an
+  uncertainty of about $\pm 5$ points.
+\item The analysis of one image takes about half a minute, which is acceptable
+  for single images but too slow for continuous real-time video.
+\item The explanation is generated by the same VLM that makes the prediction,
+  and its faithfulness has not yet been verified; this is the subject of
+  Phase II.
+\end{itemize}
+
+%% =====================================================================
+%% CHAPTER 5  SOCIAL IMPACT AND SUSTAINABILITY
+%% =====================================================================
+\chapter{Social Impact and Sustainability}
+\label{ch:impact}
+
+\section{Social Impact}
+
+Systems that interpret social interactions in images are beginning to be used
+in everyday tools. Making such systems explainable and lightweight has several
+positive applications.
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{Assistive technology.} For people who are blind or have low
+  vision, a description that goes beyond listing objects -- ``a performer is
+  entertaining an audience'', ``two people appear to be arguing'' -- conveys
+  the social meaning of a scene. Because the system runs on modest hardware, it
+  can be deployed on personal devices without sending images to a remote
+  server.
+\item \textbf{Support for social-cue learning.} Showing the cues behind an
+  interpretation (gestures, expressions, posture, setting) can support people
+  who find non-verbal cues hard to read, and can be used in training material
+  that teaches how such cues are interpreted.
+\item \textbf{Human--robot interaction.} Social and service robots need to
+  recognise whether people are busy, in conversation or seeking help before
+  approaching them; an inspectable reasoning chain helps developers check that
+  such decisions are made for the right reasons.
+\item \textbf{Trustworthy AI.} Every prediction comes with its evidence, its
+  alternatives and a confidence value, and ambiguous cases are flagged. Users
+  can see when the system is uncertain and why it reached a conclusion, which
+  supports appropriate rather than blind trust.
+\end{itemize}
+
+\section{Ethical Considerations and Risks}
+
+Inferring relationships and intentions from images is sensitive, and the
+project recognises the following risks.
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{Privacy and identification.} Vision-language models may name
+  recognisable people; in the demonstration of Section~\ref{sec:demo}, the
+  scene description identifies the performer by name. Identity is not needed
+  for the social-interaction task. Prompts and output filtering should prevent
+  the system from naming individuals, and face blurring can be applied before
+  results are stored.
+\item \textbf{Surveillance misuse.} Automatic inference of relationships and
+  intentions could be misused to monitor people without consent. The system is
+  intended for assistive and research use with consenting users, and processes
+  images locally without retaining them by default.
+\item \textbf{Bias and stereotyping.} VCR is built from movie scenes, and
+  pre-trained VLMs reflect their training data; such sources can encode
+  stereotypes about who is a ``doctor'' or a ``patient'', or about gender and
+  age roles. Biased performance across demographic groups has been documented
+  in commercial vision systems~\cite{buolamwini2018gender}. The visible
+  evidence and alternatives produced by this system make such biases easier to
+  detect, and a demographic audit of the predictions is planned.
+\item \textbf{Over-reliance.} A confident but wrong inference about intention
+  can mislead. The ambiguity flag and the alternatives are shown so that users
+  treat the output as an interpretation, not a fact.
+\end{itemize}
+
+\section{Sustainability}
+
+The design choices of the project reduce the computational and environmental
+cost of the system~\cite{strubell2019energy}.
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{Small model.} The 2.2-billion-parameter SmolVLM is far smaller
+  than the large multimodal models commonly used for visual reasoning, so
+  inference runs on a laptop GPU, Apple-silicon MPS or a CPU instead of a
+  data-centre accelerator.
+\item \textbf{Parameter-efficient training.} LoRA trains only the low-rank
+  adapters while the vision encoder, the connector and the language-model
+  weights remain frozen. The complete training run was 1,500 optimiser steps on
+  a single free cloud notebook (\fillin{GPU-hours}).
+\item \textbf{No inference overhead.} The selected adapter is merged into the
+  base weights at load time, so the fine-tuned model costs no more to run than
+  the base model.
+\item \textbf{Reuse instead of retraining.} Commonsense knowledge comes from an
+  existing knowledge graph queried from a local database, and the label space is
+  a configuration file. New labels can be added without retraining the model.
+\item \textbf{Offline operation.} The local ConceptNet database and local model
+  make the system usable without a network connection, which reduces both data
+  transfer and dependence on paid cloud services.
+\item \textbf{Efficient video handling.} Frame sampling skips blurry frames and
+  frames that repeat the previous scene, so the model analyses only frames that
+  carry new information.
+\end{itemize}
+
+\section{Alignment with the Sustainable Development Goals}
+
+The project contributes to the following United Nations Sustainable Development
+Goals:
+
+\begin{itemize}[leftmargin=*]
+\item \textbf{SDG 3 -- Good Health and Well-being:} assistive scene
+  understanding for people with visual impairment and support for social-cue
+  learning.
+\item \textbf{SDG 9 -- Industry, Innovation and Infrastructure:} affordable,
+  explainable AI that runs on commodity hardware.
+\item \textbf{SDG 10 -- Reduced Inequalities:} lower hardware requirements widen
+  access to multimodal AI, and transparent evidence makes biased predictions
+  easier to find and correct.
+\end{itemize}
+
+%% =====================================================================
+%% CHAPTER 6  CONCLUSIONS AND FUTURE WORK
+%% =====================================================================
+\chapter{Conclusions and Future Work}
+\label{ch:conclusion}
+
+\section{Conclusions}
+
+Phase I of the project has produced a complete, tested prediction pipeline for
+explainable visual commonsense reasoning about social interactions. The system
+accepts image, video and live-camera input, standardises it with OpenCV,
+performs visual understanding and language reasoning with SmolVLM, enriches the
+detected concepts with ConceptNet, and fuses the resulting evidence in a
+configurable social-interaction reasoning module.
+
+SmolVLM was fine-tuned on the VCR dataset with LoRA for 20 epochs, and the
+adapter from epoch 11 was selected on a held-out selection set. On 300 separate
+test questions it improves accuracy over the base model from 44.7\% to 58.7\%
+for \QtoA, from 41.3\% to 57.7\% for \QAtoR{} and from 15.3\% to 32.7\% for
+\QtoAR, gains well beyond the uncertainty of the test sample.
+
+The main output of Phase I is a structured prediction of the activity,
+relationship and intention, accompanied by confidence values, alternatives,
+evidence and a textual explanation. The modules are connected through a
+reusable \code{Phase1Pipeline}, the FastAPI--React interface demonstrates the
+complete flow, and all 23 automated tests pass. Phase I objectives 1--10 of
+Section~\ref{sec:objectives} have therefore been met, and the implementation
+provides a tested foundation for the second phase.
+
+\section{Future Work}
+
+Phase II will extend the system from prediction to verified explanation:
+
+\begin{enumerate}[leftmargin=*]
+\item \textbf{Visual explanation path:} Grad-CAM maps over the SmolVLM vision
+  encoder for each predicted label, and extraction of the concepts in the most
+  activated regions.
+\item \textbf{Textual explanation path:} extraction of the concepts cited in the
+  generated explanation, independent of the visual path.
+\item \textbf{Cross-modal consistency:} Jaccard-based consistency between the
+  textual and visual concept sets (Equation~\ref{eq:cmc}).
+\item \textbf{Faithfulness evaluation:} the Insertion--Deletion metric and the
+  Pointing Game on images with annotated regions.
+\item \textbf{Explainability dashboard:} a single view of the input frame, the
+  predicted interaction, the three labels, the explanations and the consistency
+  score.
+\end{enumerate}
+
+In addition, the following improvements are planned:
+
+\begin{itemize}[leftmargin=*]
+\item a labelled evaluation set for the activity, relationship and intention
+  predictions of the full pipeline, together with an ablation study of the
+  fusion weights and of each evidence source;
+\item measurement and improvement of confidence calibration;
+\item a larger VCR test set and training on more VCR questions;
+\item faster inference by batching the VLM prompts, to approach real-time video
+  analysis;
+\item privacy safeguards that prevent the naming of individuals, and an audit of
+  the predictions across demographic groups.
+\end{itemize}
+
+%% =====================================================================
+%% REFERENCES
+%% =====================================================================
+\begin{thebibliography}{99}
+\setlength{\itemsep}{2pt}
+
+\bibitem{zellers2019vcr}
+R.~Zellers, Y.~Bisk, A.~Farhadi, and Y.~Choi, ``From Recognition to Cognition:
+Visual Commonsense Reasoning,'' in \emph{Proceedings of the IEEE/CVF Conference
+on Computer Vision and Pattern Recognition (CVPR)}, 2019.
+
+\bibitem{lin2019tabvcr}
+K.~Lin \emph{et al.}, ``TAB-VCR: Tags and Attributes based VCR Baselines,'' in
+\emph{Advances in Neural Information Processing Systems (NeurIPS)}, 2019.
+
+\bibitem{yu2019hgl}
+W.~Yu \emph{et al.}, ``Heterogeneous Graph Learning for Visual Commonsense
+Reasoning,'' in \emph{Advances in Neural Information Processing Systems
+(NeurIPS)}, 2019.
+
+\bibitem{park2020visualcomet}
+J.~S. Park, C.~Bhagavatula, R.~Mottaghi, A.~Farhadi, and Y.~Choi,
+``VisualCOMET: Reasoning about the Dynamic Context of a Still Image,'' in
+\emph{European Conference on Computer Vision (ECCV)}, 2020.
+
+\bibitem{lu2019vilbert}
+J.~Lu, D.~Batra, D.~Parikh, and S.~Lee, ``ViLBERT: Pretraining Task-Agnostic
+Visiolinguistic Representations for Vision-and-Language Tasks,'' in
+\emph{Advances in Neural Information Processing Systems (NeurIPS)}, 2019.
+
+\bibitem{su2020vlbert}
+W.~Su \emph{et al.}, ``VL-BERT: Pre-training of Generic Visual-Linguistic
+Representations,'' in \emph{International Conference on Learning
+Representations (ICLR)}, 2020.
+
+\bibitem{chen2020uniter}
+Y.-C. Chen \emph{et al.}, ``UNITER: UNiversal Image-TExt Representation
+Learning,'' in \emph{European Conference on Computer Vision (ECCV)}, 2020.
+
+\bibitem{zellers2021merlot}
+R.~Zellers \emph{et al.}, ``MERLOT: Multimodal Neural Script Knowledge
+Models,'' in \emph{Advances in Neural Information Processing Systems
+(NeurIPS)}, 2021.
+
+\bibitem{radford2021clip}
+A.~Radford \emph{et al.}, ``Learning Transferable Visual Models From Natural
+Language Supervision,'' in \emph{International Conference on Machine Learning
+(ICML)}, 2021.
+
+\bibitem{li2023blip2}
+J.~Li, D.~Li, S.~Savarese, and S.~Hoi, ``BLIP-2: Bootstrapping Language-Image
+Pre-training with Frozen Image Encoders and Large Language Models,'' in
+\emph{International Conference on Machine Learning (ICML)}, 2023.
+
+\bibitem{liu2023llava}
+H.~Liu, C.~Li, Q.~Wu, and Y.~J. Lee, ``Visual Instruction Tuning,'' in
+\emph{Advances in Neural Information Processing Systems (NeurIPS)}, 2023.
+
+\bibitem{marafioti2025smolvlm}
+A.~Marafioti \emph{et al.}, ``SmolVLM: Redefining Small and Efficient
+Multimodal Models,'' arXiv preprint, 2025.
+
+\bibitem{zhai2023siglip}
+X.~Zhai, B.~Mustafa, A.~Kolesnikov, and L.~Beyer, ``Sigmoid Loss for Language
+Image Pre-Training,'' in \emph{Proceedings of the IEEE/CVF International
+Conference on Computer Vision (ICCV)}, 2023.
+
+\bibitem{speer2017conceptnet}
+R.~Speer, J.~Chin, and C.~Havasi, ``ConceptNet 5.5: An Open Multilingual Graph
+of General Knowledge,'' in \emph{Proceedings of the AAAI Conference on
+Artificial Intelligence}, 2017.
+
+\bibitem{marino2019okvqa}
+K.~Marino, M.~Rastegari, A.~Farhadi, and R.~Mottaghi, ``OK-VQA: A Visual
+Question Answering Benchmark Requiring External Knowledge,'' in
+\emph{Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern
+Recognition (CVPR)}, 2019.
+
+\bibitem{marino2021krisp}
+K.~Marino, X.~Chen, D.~Parikh, A.~Gupta, and M.~Rohrbach, ``KRISP: Integrating
+Implicit and Symbolic Knowledge for Open-Domain Knowledge-Based VQA,'' in
+\emph{Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern
+Recognition (CVPR)}, 2021.
+
+\bibitem{sun2017domain}
+Q.~Sun, B.~Schiele, and M.~Fritz, ``A Domain Based Approach to Social Relation
+Recognition,'' in \emph{Proceedings of the IEEE Conference on Computer Vision
+and Pattern Recognition (CVPR)}, 2017.
+
+\bibitem{li2017dualglance}
+J.~Li, Y.~Wong, Q.~Zhao, and M.~S. Kankanhalli, ``Dual-Glance Model for
+Deciphering Social Relationships,'' in \emph{Proceedings of the IEEE
+International Conference on Computer Vision (ICCV)}, 2017.
+
+\bibitem{hu2022lora}
+E.~J. Hu \emph{et al.}, ``LoRA: Low-Rank Adaptation of Large Language Models,''
+in \emph{International Conference on Learning Representations (ICLR)}, 2022.
+
+\bibitem{dettmers2023qlora}
+T.~Dettmers, A.~Pagnoni, A.~Holtzman, and L.~Zettlemoyer, ``QLoRA: Efficient
+Finetuning of Quantized LLMs,'' in \emph{Advances in Neural Information
+Processing Systems (NeurIPS)}, 2023.
+
+\bibitem{selvaraju2017gradcam}
+R.~R. Selvaraju \emph{et al.}, ``Grad-CAM: Visual Explanations from Deep
+Networks via Gradient-Based Localization,'' in \emph{Proceedings of the IEEE
+International Conference on Computer Vision (ICCV)}, 2017.
+
+\bibitem{petsiuk2018rise}
+V.~Petsiuk, A.~Das, and K.~Saenko, ``RISE: Randomized Input Sampling for
+Explanation of Black-box Models,'' in \emph{British Machine Vision Conference
+(BMVC)}, 2018.
+
+\bibitem{zhang2018excitation}
+J.~Zhang, S.~A. Bargal, Z.~Lin, J.~Brandt, X.~Shen, and S.~Sclaroff,
+``Top-Down Neural Attention by Excitation Backprop,'' \emph{International
+Journal of Computer Vision}, vol.~126, pp.~1084--1102, 2018.
+
+\bibitem{kayser2021evil}
+M.~Kayser \emph{et al.}, ``e-ViL: A Dataset and Benchmark for Natural Language
+Explanations in Vision-Language Tasks,'' in \emph{Proceedings of the IEEE/CVF
+International Conference on Computer Vision (ICCV)}, 2021.
+
+\bibitem{zhang2024crossmodal}
+Zhang \emph{et al.}, ``Cross-Modal Consistency in Multimodal Large Language
+Models,'' 2024.
+
+\bibitem{parcalabescu2025faithfulness}
+L.~Parcalabescu and A.~Frank, ``Faithfulness of Vision-Language
+Explanations,'' 2024--2025.
+
+\bibitem{bradski2000opencv}
+G.~Bradski, ``The OpenCV Library,'' \emph{Dr.\ Dobb's Journal of Software
+Tools}, 2000.
+
+\bibitem{zuiderveld1994clahe}
+K.~Zuiderveld, ``Contrast Limited Adaptive Histogram Equalization,'' in
+\emph{Graphics Gems IV}, P.~S. Heckbert, Ed. Academic Press, 1994,
+pp.~474--485.
+
+\bibitem{wolf2020transformers}
+T.~Wolf \emph{et al.}, ``Transformers: State-of-the-Art Natural Language
+Processing,'' in \emph{Proceedings of the 2020 Conference on Empirical Methods
+in Natural Language Processing: System Demonstrations}, 2020.
+
+\bibitem{paszke2019pytorch}
+A.~Paszke \emph{et al.}, ``PyTorch: An Imperative Style, High-Performance Deep
+Learning Library,'' in \emph{Advances in Neural Information Processing Systems
+(NeurIPS)}, 2019.
+
+\bibitem{rohrbach2017lsmdc}
+A.~Rohrbach \emph{et al.}, ``Movie Description,'' \emph{International Journal
+of Computer Vision}, vol.~123, pp.~94--120, 2017.
+
+\bibitem{buolamwini2018gender}
+J.~Buolamwini and T.~Gebru, ``Gender Shades: Intersectional Accuracy
+Disparities in Commercial Gender Classification,'' in \emph{Proceedings of the
+Conference on Fairness, Accountability and Transparency}, PMLR~81, 2018.
+
+\bibitem{strubell2019energy}
+E.~Strubell, A.~Ganesh, and A.~McCallum, ``Energy and Policy Considerations for
+Deep Learning in NLP,'' in \emph{Proceedings of the 57th Annual Meeting of the
+Association for Computational Linguistics (ACL)}, 2019.
+
+\bibitem{review1}
+V.~S. G. \emph{et al.}, ``Explainable Visual Commonsense Reasoning for Social
+Interactions -- Review Report I,'' Department of Computer Science and
+Engineering, Sri Sivasubramaniya Nadar College of Engineering, 2026.
+
+\end{thebibliography}
+
+%% =====================================================================
+%% APPENDICES
+%% =====================================================================
+\appendix
+
+\chapter{Configuration Parameters}
+\label{app:config}
+
+Table~\ref{tab:params} lists the main parameters of the Phase I pipeline, set
+in \path{configs/default.yaml} unless stated otherwise.
+
+\begin{table}[htbp]
+\centering
+\caption{Main configuration parameters of the Phase I pipeline}
+\label{tab:params}
+\small
+\begin{tabularx}{\textwidth}{@{}p{2.6cm}p{5.0cm}L@{}}
+\toprule
+\textbf{Module} & \textbf{Parameter} & \textbf{Value}\\
+\midrule
+Preprocessing & Low-light trigger & brightness $< 60$ or contrast $< 25$\\
+              & Enhancement & CLAHE on L channel, gamma 0.8\\
+              & Blur threshold (Laplacian variance) & $< 60$\\
+              & Normalisation $\mu$, $\sigma$ & (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)\\
+              & Video key moments (web interface) & up to 7\\
+VLM           & Model & \path{HuggingFaceTB/SmolVLM-Instruct}\\
+              & Decoding & greedy, repetition penalty\\
+              & Fine-tuned model & \path{configs/finetuned.yaml} (epoch-11 adapter, merged)\\
+ConceptNet    & Term salience & action 1.0, gesture 0.9, role 0.9, object 0.7, setting 0.6, caption 0.5\\
+              & Terms kept & top 20\\
+              & Facts kept & top 6 per term, top 40 overall\\
+              & Back-off penalty & salience $\times 0.5$\\
+              & Contradiction penalty & $-0.5$\\
+Reasoning     & Fusion weights & $w_{\text{VLM}} = 1.0$, $w_{\text{CN}} = 0.5$, $w_{\text{draft}} = 1.0$\\
+              & Commonsense temperature $T$ & 0.2\\
+              & Shortlist size & 8 labels\\
+              & Ambiguity margin & 0.15\\
+              & Maximum people count & 50\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\chapter{API Endpoints}
+\label{app:api}
+
+\begin{table}[htbp]
+\centering
+\caption{FastAPI endpoints implemented for the Phase I demonstration}
+\label{tab:api}
+\small
+\begin{tabularx}{\textwidth}{@{}p{5.2cm}L@{}}
+\toprule
+\textbf{Endpoint} & \textbf{Purpose}\\
+\midrule
+\code{GET /api/health} & Reports backend, model and ConceptNet status.\\
+\code{POST /api/analyze} & Accepts an image and an optional question and choices, and creates an analysis job.\\
+\code{POST /api/analyze-video} & Accepts a video, selects key moments and analyses each of them.\\
+\code{GET /api/jobs/\{job\_id\}} & Returns the job status, the active module, the completed stages and the final result.\\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\end{document}

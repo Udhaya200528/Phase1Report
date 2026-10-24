@@ -1,0 +1,599 @@
+% Chapter 3
+
+\chapter{PROPOSED METHODOLOGY}
+\label{ch:method}
+
+This chapter describes the architecture of the proposed system and the design of each Phase I module. The Phase I pipeline is
+\begin{center}
+\textbf{Input $\rightarrow$ OpenCV Preprocessing $\rightarrow$ SmolVLM $\rightarrow$ ConceptNet $\rightarrow$ Social Reasoning}
+\end{center}
+with an offline training phase in which SmolVLM is fine-tuned on VCR.
+
+% -----------------------------------------
+\section{ARCHITECTURE DESIGN}
+
+The overall architecture of the proposed system, covering both phases, is shown in Figure~\ref{fig:architecture}. Visual input is preprocessed with OpenCV and passed to a small vision-language model, which can be replaced by a version fine-tuned offline on the VCR dataset. The output of the model is enriched with commonsense knowledge, and the social interaction reasoning module fuses the two into a prediction.
+
+In Phase II, this prediction is explained along two independent paths, one textual and one visual. The consistency between the two explanations is measured, their faithfulness is evaluated with the Insertion--Deletion metric and the Pointing Game, and the results are presented in an explainability dashboard.
+
+\begin{figure}[H]
+\centering
+\resizebox{\textwidth}{!}{%
+\begin{tikzpicture}[
+  font=\small, >={Stealth[length=2mm]},
+  box/.style={draw, rounded corners=2pt, fill=white, align=center,
+              minimum height=0.75cm, inner sep=3pt},
+  grp/.style={draw, rounded corners=4pt, inner sep=0.18cm},
+  p1/.style={grp, fill=phaseone},
+  p2/.style={grp, fill=white},
+  ttl/.style={anchor=west, font=\small\bfseries, inner sep=0pt},
+  arr/.style={->, thick}
+]
+%% ---- Input and preprocessing (Phase I)
+\node[ttl] (t1) at (0.6,0.75) {Input and Preprocessing};
+\node[box, minimum width=4.2cm] (in1) at (2.9,0.0) {Static image};
+\node[box, minimum width=4.2cm] (in2) at (2.9,-0.95) {Video stream / live camera};
+\node[box, minimum width=5cm, minimum height=1.3cm] (pre) at (11,-0.475) {OpenCV preprocessing};
+\coordinate (c1a) at (0.6,0.75); \coordinate (c1b) at (15.4,-1.33);
+\begin{scope}[on background layer]
+  \node[p1, fit=(t1)(in1)(in2)(pre)(c1a)(c1b)] (g1) {};
+\end{scope}
+\draw[arr] (in1.east) -- (in1.east -| pre.west);
+\draw[arr] (in2.east) -- (in2.east -| pre.west);
+
+%% ---- Offline training phase
+\node[ttl] (t2) at (0.6,-2.35) {Training Phase (Offline)};
+\node[box, minimum width=3.4cm] (tr1) at (2.7,-3.15) {VCR dataset};
+\node[box, minimum width=3.4cm] (tr2) at (2.7,-4.15) {Data preparation};
+\node[box, minimum width=3.4cm] (tr3) at (2.7,-5.15) {LoRA fine-tuning};
+\node[box, minimum width=3.4cm] (tr4) at (2.7,-6.15) {Fine-tuned SmolVLM};
+\coordinate (c2a) at (0.6,-2.35); \coordinate (c2b) at (4.8,-6.55);
+\begin{scope}[on background layer]
+  \node[grp, dashed, fill=phaseone!50, fit=(t2)(tr1)(tr4)(c2a)(c2b)] (g2) {};
+\end{scope}
+\draw[arr] (tr1) -- (tr2);
+\draw[arr] (tr2) -- (tr3);
+\draw[arr] (tr3) -- (tr4);
+
+%% ---- SmolVLM
+\node[ttl] (t3) at (5.6,-2.35) {Small Vision-Language Model (SmolVLM)};
+\node[box, minimum width=4.2cm] (v1) at (8.0,-3.5) {Visual understanding};
+\node[box, minimum width=4.2cm] (v2) at (13.1,-3.5) {Language and reasoning};
+\coordinate (c3a) at (5.6,-2.35); \coordinate (c3b) at (15.4,-4.1);
+\begin{scope}[on background layer]
+  \node[p1, fit=(t3)(v1)(v2)(c3a)(c3b)] (g3) {};
+\end{scope}
+\draw[arr] (pre.south) -- (pre.south |- g3.north);
+\draw[arr] (v1) -- (v2);
+\draw[arr] (tr4.east) -- ++(0.75,0) |- (g3.west);
+
+%% ---- ConceptNet
+\node[box, fill=phaseone, font=\small\bfseries, minimum width=9.8cm,
+      minimum height=0.85cm] (cn) at (10.5,-6.15)
+      {Commonsense Knowledge Enrichment (ConceptNet)};
+\draw[arr] (v2.south) -- (v2.south |- cn.north);
+
+%% ---- Social interaction reasoning
+\node[ttl] (t4) at (0.6,-7.35) {Social Interaction Reasoning};
+\node[box, minimum width=2.5cm, minimum height=1.0cm] (s1) at (1.85,-8.35)  {Context\\fusion};
+\node[box, minimum width=2.5cm, minimum height=1.0cm] (s2) at (4.925,-8.35) {Sequential\\prediction};
+\node[box, minimum width=2.5cm, minimum height=1.0cm] (s3) at (8.0,-8.35)   {Candidate\\shortlisting};
+\node[box, minimum width=2.5cm, minimum height=1.0cm] (s4) at (11.075,-8.35){Log-linear\\fusion};
+\node[box, minimum width=2.5cm, minimum height=1.0cm] (s5) at (14.15,-8.35) {Context /\\query};
+\coordinate (c4a) at (0.6,-7.35); \coordinate (c4b) at (15.4,-8.85);
+\begin{scope}[on background layer]
+  \node[p1, fit=(t4)(s1)(s5)(c4a)(c4b)] (g4) {};
+\end{scope}
+\draw[arr] (s1) -- (s2);
+\draw[arr] (s2) -- (s3);
+\draw[arr] (s3) -- (s4);
+\draw[arr] (s5) -- (s4);
+\draw[arr] (cn.south) -- (cn.south |- g4.north);
+
+%% ---- Phase II: explanation paths and consistency
+\node[box, font=\small\bfseries, minimum width=7cm, minimum height=0.85cm] (tex) at (4.2,-10.2) {Textual explanation path};
+\node[box, font=\small\bfseries, minimum width=7cm, minimum height=0.85cm] (vis) at (11.8,-10.2) {Visual explanation path};
+\draw[arr] (tex.north |- g4.south) -- (tex.north);
+\draw[arr] (vis.north |- g4.south) -- (vis.north);
+\node[box, font=\small\bfseries, minimum width=5.4cm, minimum height=0.85cm] (cons) at (8,-11.5) {Cross-modal consistency analysis};
+\draw[arr] (tex.south) |- (cons.west);
+\draw[arr] (vis.south) |- (cons.east);
+
+%% ---- Phase II: evaluation
+\node[ttl] (t5) at (0.6,-12.55) {Explainability Evaluation};
+\node[box, minimum width=6.8cm] (e1) at (4.2,-13.4)  {Insertion--Deletion metric};
+\node[box, minimum width=6.8cm] (e2) at (11.8,-13.4) {Pointing game};
+\coordinate (c5a) at (0.6,-12.55); \coordinate (c5b) at (15.4,-13.85);
+\begin{scope}[on background layer]
+  \node[p2, fit=(t5)(e1)(e2)(c5a)(c5b)] (g5) {};
+\end{scope}
+\draw[arr] (cons.south) -- (cons.south |- g5.north);
+
+%% ---- Phase II: dashboard
+\node[ttl] (t6) at (0.6,-14.95) {Final Explainable Output (Dashboard)};
+\node[box, font=\footnotesize, minimum width=3.4cm, minimum height=1.0cm] (d1) at (2.3,-15.85)  {Input frame};
+\node[box, font=\footnotesize, minimum width=3.4cm, minimum height=1.0cm] (d2) at (6.1,-15.85)  {Predicted\\interaction};
+\node[box, font=\footnotesize, minimum width=3.4cm, minimum height=1.0cm] (d3) at (9.9,-15.85)  {Activity, relationship,\\intention};
+\node[box, font=\footnotesize, minimum width=3.4cm, minimum height=1.0cm] (d4) at (13.7,-15.85) {Consistency\\score};
+\coordinate (c6a) at (0.6,-14.95); \coordinate (c6b) at (15.4,-16.35);
+\begin{scope}[on background layer]
+  \node[p2, fit=(t6)(d1)(d4)(c6a)(c6b)] (g6) {};
+\end{scope}
+\draw[arr] (cons.south |- g5.south) -- (cons.south |- g6.north);
+\end{tikzpicture}%
+}
+\caption{Architecture Design of Proposed System (shaded: Phase I; unshaded: Phase II)}
+\label{fig:architecture}
+\end{figure}
+
+% -----------------------------------------
+\section{PHASE I ARCHITECTURE}
+
+The part of the architecture implemented in Phase I is shown in Figure~\ref{fig:phase1}. The modules are connected through structured Python data objects rather than by passing unstructured text between stages. The main implementation files are listed in Table~\ref{tab:codemap}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[
+  font=\small, >={Stealth[length=2mm]},
+  box/.style={draw, rounded corners=2pt, align=center, minimum height=0.8cm,
+              minimum width=6.6cm, inner sep=3pt},
+  mod/.style={box, fill=phaseone, font=\small\bfseries},
+  arr/.style={->, thick}
+]
+\node[box] (a0) at (0,0) {Image / Video frame / Live camera};
+\node[mod] (a1) at (0,-1.2) {Input and Preprocessing};
+\node[mod] (a2) at (0,-2.4) {Small Vision-Language Model};
+\node[mod] (a3) at (0,-3.6) {ConceptNet Commonsense Enrichment};
+\node[mod] (a4) at (0,-4.8) {Social Interaction Reasoning};
+\node[box] (a5) at (0,-6.0) {Activity $\cdot$ Relationship $\cdot$ Intention};
+\draw[arr] (a0) -- (a1);
+\draw[arr] (a1) -- (a2);
+\draw[arr] (a2) -- (a3);
+\draw[arr] (a3) -- (a4);
+\draw[arr] (a4) -- (a5);
+\node[draw, cylinder, shape border rotate=90, aspect=0.25, minimum height=1.3cm,
+      minimum width=1.9cm, align=center, font=\footnotesize] (db) at (-5.2,-3.6)
+      {ConceptNet\\(SQLite)};
+\draw[arr] (db.east) -- (a3.west);
+\node[draw, dashed, rounded corners=2pt, align=center, font=\footnotesize,
+      minimum height=0.8cm] (lora) at (5.3,-2.4) {LoRA adapter\\(VCR, epoch 11)};
+\draw[arr] (lora.west) -- (a2.east);
+\end{tikzpicture}
+\caption{Phase I Architecture}
+\label{fig:phase1}
+\end{figure}
+
+\begin{table}[h!]
+\centering
+\caption{Phase I Module-to-Code Mapping}
+\label{tab:codemap}
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|p{5.6cm}|L|}
+\hline
+\textbf{Module} & \textbf{Implementation}\\ \hline
+Input and Preprocessing & \path{svcr/preprocessing.py}, \code{Preprocessor}, \code{FrameStream}\\ \hline
+Small Vision-Language Model & \path{svcr/vlm.py}, \code{SmolVLMEngine}\\ \hline
+ConceptNet Commonsense Enrichment & \path{svcr/conceptnet/client.py}, \path{enrichment.py}, \path{relations.py}\\ \hline
+Social Interaction Reasoning & \path{svcr/reasoning.py}, \code{SocialInteractionReasoner}\\ \hline
+Fine-Tuning (offline) & \path{finetune/train_vcr_lora.py}, \path{configs/finetuned.yaml}\\ \hline
+Pipeline Integration & \path{svcr/pipeline.py}, \code{Phase1Pipeline}\\ \hline
+Data Structures & \path{svcr/schemas.py}\\ \hline
+Configuration & \path{configs/default.yaml}, \path{configs/taxonomy.yaml}\\ \hline
+\end{tabularx}
+\end{table}
+
+% -----------------------------------------
+\section{DATA FLOW}
+
+For a single image, data flows through the pipeline as follows. The image is acquired and its quality is assessed; the necessary preprocessing is applied, and the frame is converted into the RGB representation expected by the model together with a normalised tensor. SmolVLM then examines the frame to identify the people, objects, actions, gestures, setting and spatial relationships, and produces a draft activity, relationship, intention and rationale, as well as an answer to the user's question when one is asked.
+
+Salient concepts are next extracted from these outputs and looked up in ConceptNet. The useful commonsense relations are retained and used to calculate the support for each candidate label in the taxonomy. Finally, the VLM probabilities, the ConceptNet support and the draft-matching scores are fused to predict the activity, relationship and intention in sequence, and the structured result is returned with its evidence, alternatives, explanation and timings.
+
+% -----------------------------------------
+\section{MODULES}
+
+The Phase I system consists of the following modules: Input and Preprocessing, the Small Vision-Language Model, Fine-Tuning on VCR (offline), ConceptNet Commonsense Enrichment, Social Interaction Reasoning, and the Phase I Integration that connects them.
+
+\subsection{Input and Preprocessing Module}
+\label{sec:preproc}
+
+The Input and Preprocessing module provides a common input representation for all downstream components. It is implemented in \path{svcr/preprocessing.py} using OpenCV~\cite{bradski2000opencv}, NumPy and, where required, PIL.
+
+\subsubsection{Input Sources}
+The module accepts image file paths, HTTP and HTTPS image URLs, NumPy arrays and PIL images, as well as video files and live camera streams. Each is converted into a common BGR frame before further processing.
+
+\subsubsection{Quality Assessment}
+For every frame the brightness, contrast and blur are calculated; blur is estimated from the variance of the Laplacian. Frames that are dark or low in contrast are enhanced by applying CLAHE~\cite{zuiderveld1994clahe} to the luminance channel of the LAB colour space, followed by a mild gamma correction. Optional non-local-means denoising is available through the configuration.
+
+\subsubsection{Resize and Normalisation}
+The default resizing mode preserves the aspect ratio and limits the longest side to a size compatible with the model. The RGB image is retained as an 8-bit image for the SmolVLM processor, and a normalised tensor is also generated:
+\begin{equation}
+  x_{\text{norm}} = \frac{x/255 - \mu}{\sigma}, \qquad
+  \mu = \sigma = (0.5, 0.5, 0.5)
+  \label{eq:norm}
+\end{equation}
+The tensor has shape $1 \times 3 \times H \times W$ and is retained for the Phase II operations, Grad-CAM and Insertion--Deletion. The procedure is given in Algorithm~\ref{alg:preprocess}.
+
+\begin{algorithm}[H]
+\caption{Input Preprocessing}
+\label{alg:preprocess}
+\begin{algorithmic}[1]
+\Require Image source $S$ (path, URL, array or PIL image); target longest side $N$; normalisation constants $\mu,\sigma$
+\Ensure Preprocessed frame $F$
+\State $I \gets \textsc{LoadAsBGR}(S)$;\; $(h,w) \gets$ size of $I$
+\State $g \gets$ greyscale version of $I$
+\State $b \gets \operatorname{mean}(g)$;\; $c \gets \operatorname{std}(g)$;\; $z \gets \operatorname{Var}(\nabla^2 g)$ \Comment{brightness, contrast, blur}
+\If{$b < 60$ \textbf{or} $c < 25$}
+  \State $I \gets$ CLAHE on the L channel of LAB, then gamma $0.8$
+\EndIf
+\If{denoising is enabled}
+  \State $I \gets \textsc{NonLocalMeansDenoise}(I)$
+\EndIf
+\State $s \gets N / \max(h,w)$
+\If{$s < 1$}
+  \State $I \gets \textsc{Resize}(I, s)$ \Comment{aspect ratio preserved}
+\EndIf
+\State $R \gets \textsc{BGRtoRGB}(I)$
+\State $T \gets (R/255 - \mu)/\sigma$, arranged as $1 \times 3 \times H \times W$
+\State \Return $F = \big(R, T, (w,h), s, \{b, c, z, \text{blurry} = z < 60\}\big)$
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Video and Live-Camera Handling}
+For video and live-camera input, \code{FrameStream} samples frames at a configurable interval. Blurry frames can be skipped, and frames that show the same scene as the last analysed frame are filtered out using the Bhattacharyya distance between HSV histograms, with a periodic refresh so that a scene is not suppressed indefinitely (Algorithm~\ref{alg:framesample}). For uploaded videos, the web interface selects up to seven key moments: the clip is divided into scene segments using colour histograms, and the sharpest frame from the central part of each segment is analysed.
+
+\begin{algorithm}[H]
+\caption{Frame Sampling for Video and Live Camera}
+\label{alg:framesample}
+\begin{algorithmic}[1]
+\Require Frame stream $\{(f_t, t)\}$; interval $\Delta$; scene-change threshold $\tau$
+\Ensure Sequence of frames to analyse
+\State $t_{\text{check}} \gets -\infty$;\; $t_{\text{last}} \gets -\infty$;\; $H_{\text{last}} \gets \textsc{null}$
+\ForAll{frames $(f_t, t)$ in the stream}
+  \If{$t - t_{\text{check}} < \Delta$ \textbf{or} $f_t$ is blurry}
+    \State \textbf{continue}
+  \EndIf
+  \State $t_{\text{check}} \gets t$;\; $H \gets$ HSV histogram of $f_t$
+  \If{$H_{\text{last}} \neq \textsc{null}$ \textbf{and} $t - t_{\text{last}} < 3\Delta$ \textbf{and} $d_{\text{Bhatt}}(H_{\text{last}}, H) < \tau$}
+    \State \textbf{continue} \Comment{same scene as last analysed frame}
+  \EndIf
+  \State $t_{\text{last}} \gets t$;\; $H_{\text{last}} \gets H$
+  \State \textbf{output} $f_t$
+\EndFor
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Small Vision-Language Model Module}
+\label{sec:vlm}
+
+The VLM module is implemented by \code{SmolVLMEngine} in \path{svcr/vlm.py}. The default configuration uses \code{HuggingFaceTB/SmolVLM-Instruct}, loaded through Hugging Face Transformers~\cite{wolf2020transformers}. The engine loads the model and processor once, selects CUDA, MPS or the CPU as available, and provides three operations: \code{generate()} for deterministic text generation, \code{score\_options()} for multiple-choice probability estimation, and \code{run()}, which performs the complete visual-understanding and draft-reasoning stage.
+
+\subsubsection{Visual Understanding}
+The engine first generates a detailed, people-centric description of the image. Short follow-up prompts then ask for the number of people, the important objects, the actions being performed, the facial expressions, gestures and body language, the setting, and a description or role for each person. The answers are parsed into clean concept lists and stored in a \code{VisualConcepts} object; text utilities normalise the phrases and extract spatial relationships from the description.
+
+\subsubsection{Language and Reasoning}
+The second sub-stage generates free-form draft answers for the activity, the relationship and the intention, a visual rationale that explains them, and an answer to the user's question when one is provided. Decoding is deterministic: sampling is disabled and a repetition penalty is applied, so the same input always gives the same output. Algorithm~\ref{alg:vlm} gives the procedure; \textsc{Generate} denotes greedy decoding with a repetition penalty.
+
+\begin{algorithm}[H]
+\caption{Visual Understanding and Draft Reasoning with SmolVLM}
+\label{alg:vlm}
+\begin{algorithmic}[1]
+\Require Preprocessed frame $F$; optional question $Q$
+\Ensure Visual concepts $V$; draft reasoning $D$
+\State $cap \gets \textsc{Generate}(F, \text{describe-the-people prompt})$
+\State $\theta \gets \textsc{ExtractTerms}(cap)$ \Comment{nouns, verbs, adjectives, people}
+\ForAll{$k \in \{\text{count, objects, actions, gestures, setting, people}\}$}
+  \State $a_k \gets \textsc{Generate}(F, \text{prompt}_k)$
+\EndFor
+\State $n \gets \textsc{ParseCount}(a_{\text{count}})$; if no number is found, $n \gets \textsc{ParseCount}(cap)$
+\State $V.\mathit{objects} \gets \textsc{Split}(a_{\text{objects}}) \cup \theta.\text{nouns}$
+\State $V.\mathit{actions} \gets \textsc{Split}(a_{\text{actions}}) \cup \theta.\text{verbs}$
+\State $V.\mathit{gestures} \gets \textsc{Split}(a_{\text{gestures}})$;\; $V.\mathit{people} \gets \textsc{Split}(a_{\text{people}}) \cup \theta.\text{people}$
+\State $V.\mathit{setting} \gets a_{\text{setting}}$;\; $V.\mathit{spatial} \gets \textsc{SpatialRelations}(cap)$
+\If{$n \geq 2$}
+  \State $D.\mathit{activity} \gets \textsc{Generate}(F, \text{``what interaction is happening?''})$
+  \State $D.\mathit{relationship} \gets \textsc{Generate}(F, \text{``what is their relationship?''})$
+\Else
+  \State $D.\mathit{activity} \gets \textsc{Generate}(F, \text{``what is the person doing?''})$
+  \State $D.\mathit{relationship} \gets \text{``no relationship''}$
+\EndIf
+\State $D.\mathit{intention} \gets \textsc{Generate}(F, \text{``why are they } D.\mathit{activity}\text{?''})$
+\State $D.\mathit{rationale} \gets \textsc{Generate}(F, \text{``what visible evidence shows this?''})$
+\If{$Q \neq \textsc{null}$}
+  \State $q' \gets Q$ + ``answer briefly and give the visual reason''
+  \State $D.\mathit{answer} \gets \textsc{Generate}(F, q')$
+\EndIf
+\State \Return $(V, D)$
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Multiple-Choice Scoring}
+For a multiple-choice question the engine reads the next-token logits for the option letters instead of generating text. The resulting option probabilities are averaged over several orderings of the options to reduce letter and position bias (Algorithm~\ref{alg:mcscore}), and are later used by the reasoning module.
+
+\begin{algorithm}[H]
+\caption{Debiased Multiple-Choice Scoring}
+\label{alg:mcscore}
+\begin{algorithmic}[1]
+\Require Frame $F$; question $q$; options $o_1,\dots,o_n$; context $c$; number of orderings $k$
+\Ensure Probabilities $p_1,\dots,p_n$ with $\sum_i p_i = 1$
+\If{$n = 1$}
+  \State \Return $(1)$
+\EndIf
+\State $\Pi \gets \{\text{identity order}\}$; if $k \geq 2$, add the reversed order and $k-2$ cyclic shifts
+\State $p \gets (0,\dots,0)$
+\ForAll{orderings $\pi \in \Pi$}
+  \State $\mathit{prompt} \gets c + q +$ one line ``letter$_i$. $o_{\pi(i)}$'' for each option
+  \State append ``Answer with the letter of the best option.'' to $\mathit{prompt}$
+  \State $z \gets$ next-token logits of SmolVLM for $(F, \mathit{prompt})$
+  \For{$i = 1$ \textbf{to} $n$}
+    \State $\ell_i \gets \max_{t \in \text{tokens}(\text{letter}_i)} z_t$
+  \EndFor
+  \State $s \gets \operatorname{softmax}(\ell)$
+  \For{$i = 1$ \textbf{to} $n$}
+    \State $p_{\pi(i)} \gets p_{\pi(i)} + s_i$ \Comment{map back to the original option}
+  \EndFor
+\EndFor
+\State \Return $p / |\Pi|$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Fine-Tuning on VCR (Offline)}
+\label{sec:finetune}
+
+Used zero-shot, SmolVLM sometimes gives reasons that the image does not support. To adapt it to commonsense reasoning about people, the model is fine-tuned on the VCR dataset~\cite{zellers2019vcr} with LoRA~\cite{hu2022lora} (Equation~\ref{eq:lora}). Low-rank adapters of rank 16 are added to the attention and feed-forward projections of the language model, while the SigLIP vision encoder and the connector stay frozen, so only a small fraction of the parameters is trained (about 18.1 million trainable parameters).
+
+\subsubsection{Data Preparation}
+The people and objects referred to in each VCR question are drawn on the image as labelled boxes (\emph{person1}, \emph{person2}, and so on), and the question text uses the same tags. Three kinds of training example are built from each question: multiple-choice question answering (\QtoA), multiple-choice selection of the rationale for the correct answer (\QAtoR), and a free-form answer followed by its visual reason. The multiple-choice prompts are word for word the prompts used by the option scoring of Algorithm~\ref{alg:mcscore}, so training directly sharpens the probabilities that the reasoning module fuses. The order of the options is shuffled so that no letter is favoured, and the loss is computed only on the answer tokens.
+
+\subsubsection{Training and Checkpoint Selection}
+The model is trained for 20 epochs. After every epoch the adapter is saved and scored on a selection set of VCR validation questions, and the epoch with the highest \QtoAR{} accuracy is kept; ties are broken by higher \QtoA{} accuracy and then by the earlier epoch. The final accuracy is measured on a separate test set of held-out validation questions, so the choice of epoch does not bias the reported result (Algorithm~\ref{alg:lora}). In the completed run, epoch 11 was selected. The selected adapter is merged into the base weights when the model is loaded through \path{configs/finetuned.yaml}, so inference with the fine-tuned model is as fast as with the base model.
+
+\subsubsection{Implementation}
+The procedure is implemented in \path{finetune/train_vcr_lora.py}. The script streams VCR images from the dataset's Parquet files, draws the labelled boxes, builds the three kinds of training example and caches the prepared data. It saves a checkpoint every 50 steps so that an interrupted run can be resumed, and records the training loss, the per-epoch selection accuracy and the final test accuracy. After the run, \path{install_adapter.py} copies the selected adapter into the project. The configuration is listed in Table~\ref{tab:ftconfig}.
+
+\begin{table}[h!]
+\centering
+\caption{Fine-Tuning Configuration}
+\label{tab:ftconfig}
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|p{4.2cm}|L|}
+\hline
+\textbf{Setting} & \textbf{Value}\\ \hline
+Base model & \code{HuggingFaceTB/SmolVLM-Instruct} (2.2B parameters)\\ \hline
+Adapter & LoRA, rank 16, alpha 32, dropout 0.05\\ \hline
+Adapted layers & Query, key, value, output, gate, up and down projections of the language model\\ \hline
+Frozen components & SigLIP vision encoder and connector\\ \hline
+Training data & Hugging Face VCR dataset (\QtoA, \QAtoR{} and explanation examples)\\ \hline
+Image resolution & Longest edge 768 pixels\\ \hline
+Batch size & 2, with gradient accumulation over 8 steps (effective batch of 16)\\ \hline
+Optimiser & AdamW, learning rate $10^{-4}$, cosine schedule with 5\% warm-up\\ \hline
+Training length & 20 epochs of 75 steps (1,500 optimiser steps)\\ \hline
+Checkpoint selection & Best \QtoAR{} on selection questions: epoch 11\\ \hline
+Test set & Held-out VCR validation questions\\ \hline
+\end{tabularx}
+\end{table}
+
+\begin{algorithm}[H]
+\caption{LoRA Fine-Tuning with Best-Epoch Selection}
+\label{alg:lora}
+\begin{algorithmic}[1]
+\Require Base model $M$; training examples $X$; selection set $S_{\text{sel}}$; test set $S_{\text{test}}$; number of epochs $E = 20$
+\Ensure Selected adapter $A^*$; test accuracy before and after fine-tuning
+\State add LoRA adapters to the language model of $M$; freeze all other weights
+\State $r_{\text{base}} \gets \textsc{Evaluate}(M \text{ without adapters}, S_{\text{test}})$
+\For{$e = 1$ \textbf{to} $E$}
+  \ForAll{mini-batches $B \subset X$}
+    \State update the adapters to minimise the cross-entropy of the answer tokens of $B$
+  \EndFor
+  \State $A_e \gets$ current adapters;\; $r_e \gets \textsc{Evaluate}(M + A_e, S_{\text{sel}})$
+\EndFor
+\State $e^* \gets \arg\max_e \big(r_e.\text{\QtoAR},\; r_e.\text{\QtoA},\; -e\big)$ \Comment{ties: higher \QtoA, then earlier epoch}
+\State $A^* \gets A_{e^*}$;\; $r_{\text{ft}} \gets \textsc{Evaluate}(M + A^*, S_{\text{test}})$
+\State \Return $A^*, r_{\text{base}}, r_{\text{ft}}$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{ConceptNet Commonsense Enrichment Module}
+\label{sec:conceptnet}
+
+Visual observations alone may not be enough to distinguish semantically similar interactions. The enrichment module uses ConceptNet~\cite{speer2017conceptnet} to add commonsense knowledge to the visual concepts and produces evidence that is fused into the final prediction. It is divided into a client layer, which handles backend access, caching, term normalisation and phrase back-off, and an enrichment layer, which assigns salience, filters evidence and computes label support.
+
+\subsubsection{Key-Term Extraction}
+Candidate terms are collected from the actions, gestures, roles, objects and setting identified by the VLM, from its description and draft answers, and from the user's question. Each term receives a salience weight, highest for interaction-relevant kinds such as actions (1.0) and gestures (0.9).
+
+\subsubsection{ConceptNet Backend}
+Three backends are supported: a local SQLite copy of ConceptNet, the public ConceptNet API with a persistent on-disk cache, and an offline mode in which taxonomy-based keyword matching remains available. The local backend is preferred for reproducibility whenever the database is present. An unknown phrase such as ``shaking hands'' is retried as \code{shake\_hands} and then as its head word.
+
+\subsubsection{Relevance Filtering}
+For each term the module retrieves its edges and filters them by relation type and weight. Facts that link the term to the anchor concepts of the social-interaction labels, or to other concepts observed in the same image, are ranked highest. Generic hub concepts, which are connected to almost everything, are suppressed because they carry little discriminative value.
+
+\subsubsection{Label Support and Ambiguity Resolution}
+For each activity, relationship and intention label, the module calculates how strongly the evidence supports it (Algorithm~\ref{alg:support}). A term contributes support if it is one of the label's anchor concepts, if a direct edge connects it to an anchor, if its two-hop neighbourhood overlaps that of the label, or if it matches one of the label's keywords, weighted by inverse document frequency. Negative relations such as \emph{Antonym} and \emph{DistinctFrom} reduce the support. The module therefore produces a numerical support score for every label together with readable evidence paths, and combines the support with the match to the VLM draft to produce a preliminary disambiguated label for each task (Algorithm~\ref{alg:enrich}). The taxonomy, including each label's anchors and keywords, is kept in \path{configs/taxonomy.yaml} so that it can be changed without modifying the code.
+
+\begin{algorithm}[H]
+\caption{ConceptNet Commonsense Enrichment}
+\label{alg:enrich}
+\begin{algorithmic}[1]
+\Require Visual concepts $V$; draft $D$; optional question $Q$; taxonomy $\mathcal{T}$
+\Ensure Facts $\mathcal{F}$; support $S$; draft match $M$; evidence; disambiguated labels $\hat{L}$
+\State $E \gets$ terms from $V$, $D$ and $Q$, each with a salience (action 1.0, gesture 0.9, role 0.9, object 0.7, setting 0.6, caption 0.5); keep the top 20
+\ForAll{terms $e \in E$}
+  \State $(c_e, \mathit{edges}_e) \gets \textsc{Resolve}(e)$ \Comment{phrase $\rightarrow$ lemma $\rightarrow$ head word}
+  \If{$c_e$ is shorter than $e$}
+    \State $\mathrm{salience}(e) \gets 0.5 \cdot \mathrm{salience}(e)$ \Comment{backed-off sense is less reliable}
+  \EndIf
+  \State $P_e[v] \gets w_{\text{rel}} \cdot (1 - e^{-\text{weight}})$ for each neighbour $v$ that is not a generic hub
+  \State $N_e \gets$ neighbours linked by \emph{Antonym}, \emph{DistinctFrom} or \emph{Not*} relations
+\EndFor
+\State $\mathcal{F} \gets$ top 6 facts per term, ranked by relevance ($\times 2$ if the neighbour is a label anchor, $\times 1.5$ if it is another observed concept); keep the top 40
+\ForAll{tasks $\tau \in \{\text{activity, relationship, intention}\}$}
+  \ForAll{labels $L \in \mathcal{T}[\tau]$}
+    \State $S_\tau(L) \gets \dfrac{\sum_e w_{e,\tau}\, \textsc{Score}(e, L)}{\sum_e w_{e,\tau}}$ \Comment{Algorithm~\ref{alg:support}}
+    \State $M_\tau(L) \gets \max\big(\mathrm{lex}(D_\tau, L),\; 0.8 \max_{e \in \text{draft}} \textsc{Score}(e, L)\big)$
+  \EndFor
+  \State $S_\tau \gets S_\tau / \max\big(\max_L S_\tau(L),\, 0.3\big)$
+  \State $\hat{L}_\tau \gets \arg\max_L \big(S_\tau(L) + M_\tau(L)\big)$
+\EndFor
+\State \Return $\mathcal{F}, S, M$, evidence paths, $\hat{L}$
+\end{algorithmic}
+\end{algorithm}
+
+Here $w_{e,\tau}$ is the salience of term $e$ multiplied by the weight of its kind for task $\tau$; for example, roles count most for the relationship task and actions most for the activity task.
+
+\begin{algorithm}[H]
+\caption{Support of One Evidence Term for One Label}
+\label{alg:support}
+\begin{algorithmic}[1]
+\Require Term $e$ with concept $c_e$, neighbour profile $P_e$ and negative neighbours $N_e$; label $L$ with anchors $A_L$, lexicon $X_L$ and neighbour profile $P_L$
+\Ensure Support score $s$
+\If{$c_e \in A_L$}
+  \State \Return $1.0$ \Comment{exact anchor}
+\EndIf
+\State $s \gets 0$
+\ForAll{anchors $a \in A_L$}
+  \If{$a \in P_e$}
+    \State $s \gets \max(s,\, 0.9\, P_e[a])$ \Comment{direct edge}
+  \EndIf
+\EndFor
+\State $s \gets \max\big(s,\; 0.6 \cdot \min(1,\, 2.5 \cos(P_e, P_L))\big)$ \Comment{two-hop overlap}
+\State $H \gets \mathrm{words}(e) \cap X_L$
+\If{$H \neq \emptyset$}
+  \State $s \gets \max\big(s,\; 0.6 / \min_{w \in H} \mathrm{df}(w)\big)$ \Comment{keyword, IDF-weighted}
+\EndIf
+\If{$N_e \cap A_L \neq \emptyset$}
+  \State $s \gets s - 0.5$ \Comment{contradicting relation}
+\EndIf
+\State \Return $s$
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Social Interaction Reasoning Module}
+\label{sec:reasoning}
+
+The Social Interaction Reasoning module, \code{SocialInteractionReasoner}, is the fusion point of Phase I. It combines the visual concepts, the commonsense evidence, the VLM draft and the optional user question to predict the social interaction.
+
+\subsubsection{Context Fusion}
+The module builds a structured context from the scene description, the number of people and their descriptions, the actions, gestures, objects and setting identified by the VLM, a selection of the most relevant ConceptNet facts, and the user's question. This context accompanies the image in every prompt that the module sends to the VLM.
+
+\subsubsection{Sequential Prediction}
+The three tasks are inferred in the order activity, relationship, intention. The predicted activity is added to the context for relationship inference, and both the activity and the relationship are added to the context for intention inference, so that each later prediction is consistent with the earlier ones.
+
+\subsubsection{Candidate Shortlisting}
+ConceptNet support, VLM draft matching and lexical evidence are combined into a prior over the taxonomy labels. When the prior is informative, only the highest-ranked candidates are shortlisted; otherwise the complete label set is passed to the VLM.
+
+\subsubsection{Log-Linear Fusion}
+Let $p_{\text{VLM}}(L)$ be the VLM probability for label $L$, $p_{\text{CN}}(L)$ the normalised ConceptNet support, and $m_{\text{draft}}(L)$ the match between the VLM draft and the label. The module computes
+\begin{equation}
+  \log P(L) \;\propto\; w_{\text{VLM}} \log p_{\text{VLM}}(L)
+  + w_{\text{CN}} \log p_{\text{CN}}(L)
+  + w_{\text{draft}}\, m_{\text{draft}}(L)
+  \label{eq:fusion}
+\end{equation}
+with default weights $w_{\text{VLM}} = 1.0$, $w_{\text{CN}} = 0.5$ and $w_{\text{draft}} = 1.0$. The resulting distribution gives the highest-scoring label with its confidence, the ranked alternatives with their component probabilities, and the evidence behind the prediction. A prediction is marked ambiguous when the probability margin between the top two labels is below 0.15. Algorithm~\ref{alg:infertask} infers one task in this way.
+
+\begin{algorithm}[H]
+\caption{Inference of One Task with Log-Linear Fusion}
+\label{alg:infertask}
+\begin{algorithmic}[1]
+\Require Task $\tau$; frame $F$; context $c$; visual concepts $V$; support $S_\tau$; draft match $M_\tau$; disambiguated label $\hat{L}_\tau$
+\Ensure Prediction for $\tau$: label, confidence, ambiguity flag, alternatives, evidence
+\State $\mathcal{L} \gets$ labels of $\tau$ (excluding \code{none\_single} for relationship)
+\ForAll{$L \in \mathcal{L}$}
+  \State $\mathit{prior}(L) \gets S_\tau(L) + 1.5\, M_\tau(L) + 0.3\, \mathrm{lex}(\text{scene text}, L)$
+\EndFor
+\If{fewer than 3 labels have $\mathit{prior} > 0.05$}
+  \State $C \gets \mathcal{L}$ \Comment{no reliable prior: VLM sees all labels}
+\Else
+  \State $C \gets$ the 8 labels with the highest prior, always including $\hat{L}_\tau$
+\EndIf
+\State $p_{\text{VLM}} \gets \textsc{ScoreOptions}(F, \text{question}_\tau, \text{descriptions of } C, c)$ \Comment{Algorithm~\ref{alg:mcscore}}
+\If{$\max_{L \in C} S_\tau(L) < 10^{-3}$}
+  \State $p_{\text{CN}} \gets$ uniform over $C$
+\Else
+  \State $p_{\text{CN}} \gets \operatorname{softmax}(S_\tau / T)$, $T = 0.2$
+\EndIf
+\ForAll{$L \in C$}
+  \State $z(L) \gets w_{\text{VLM}} \log p_{\text{VLM}}(L) + w_{\text{CN}} \log p_{\text{CN}}(L) + w_{\text{draft}}\, M_\tau(L)$
+\EndFor
+\State $P \gets \operatorname{softmax}(z)$; sort $C$ by $P$ in descending order
+\State $L^* \gets C_1$;\; $\mathit{ambiguous} \gets \big(P(C_1) - P(C_2) < 0.15\big)$
+\State \Return $\big(L^*, P(L^*), \mathit{ambiguous}, C \text{ with } P, p_{\text{VLM}}, p_{\text{CN}}, M_\tau, \text{evidence for } L^*\big)$
+\end{algorithmic}
+\end{algorithm}
+
+\subsubsection{Special Cases and Explanation}
+Scenes with zero or one detected person are handled explicitly. When only one person is present, the relationship is set to \code{none\_single}; when no people are detected, the system returns a no-interaction prediction instead of inferring a social relationship. Once the three tasks are inferred, an explanation is generated by a prompt that asks the VLM to relate the prediction to the visible people, gestures, facial expressions, objects and setting. Algorithm~\ref{alg:reason} applies these steps to the three tasks in sequence.
+
+\begin{algorithm}[H]
+\caption{Social Interaction Reasoning}
+\label{alg:reason}
+\begin{algorithmic}[1]
+\Require Frame $F$; visual concepts $V$; draft $D$; commonsense result $R$; optional question $Q$ and options $O$
+\Ensure Social prediction: activity, relationship, intention, explanation, answer
+\State $c \gets \textsc{Fuse}(V, R, Q)$ \Comment{caption, concepts, top ConceptNet facts, question}
+\If{$V.\mathit{people} = 0$}
+  \State \Return no-interaction prediction
+\EndIf
+\State $A \gets \textsc{InferTask}(\text{activity}, F, c)$ \Comment{Algorithm~\ref{alg:infertask}}
+\If{$V.\mathit{people} = 1$}
+  \State $\mathit{Rel} \gets$ \code{none\_single} with confidence 1
+\Else
+  \State $\mathit{Rel} \gets \textsc{InferTask}(\text{relationship}, F, c + \text{``The people are } A\text{.''})$
+\EndIf
+\State $c' \gets c$ + ``The people are $A$. They are most likely $\mathit{Rel}$.''
+\State $I \gets \textsc{InferTask}(\text{intention}, F, c')$
+\State $\mathit{pr} \gets$ statement of $(A, \mathit{Rel}, I)$ + top ConceptNet facts + ``explain which visible evidence supports this''
+\State $\mathit{Ex} \gets \textsc{Generate}(F, \mathit{pr})$
+\If{$Q \neq \textsc{null}$ \textbf{and} $O \neq \textsc{null}$}
+  \State $p \gets \textsc{ScoreOptions}(F, Q, O, c)$;\; $\mathit{ans} \gets O_{\arg\max p}$
+\ElsIf{$Q \neq \textsc{null}$}
+  \State $\mathit{ans} \gets D.\mathit{answer}$
+\EndIf
+\State \Return $(A, \mathit{Rel}, I, \mathit{Ex}, \mathit{ans})$ with the supporting evidence
+\end{algorithmic}
+\end{algorithm}
+
+\subsection{Phase I Integration}
+
+The four modules are integrated through the \code{Phase1Pipeline} class, which runs them in sequence (Algorithm~\ref{alg:pipeline}). The modules exchange structured dataclasses rather than free text: \code{PreprocessedFrame} carries the output of preprocessing, \code{VisualConcepts} and \code{DraftReasoning} carry the output of the VLM, \code{CommonsenseResult} carries the ConceptNet evidence, and \code{SocialPrediction} carries the final prediction. Together these form a \code{Phase1Result}, which can be serialised to JSON with all of its evidence and module timings.
+
+\begin{algorithm}[H]
+\caption{Phase I Pipeline}
+\label{alg:pipeline}
+\begin{algorithmic}[1]
+\Require Input source $S$, optional question $Q$, optional answer options $O$
+\Ensure Phase I result: frame, visual concepts, draft, commonsense evidence, prediction, timings
+\State $F \gets \textsc{Preprocess}(S)$ \Comment{Algorithm~\ref{alg:preprocess}}
+\State $(V, D) \gets \textsc{SmolVLM}(F, Q)$ \Comment{Algorithm~\ref{alg:vlm}}
+\State $R \gets \textsc{EnrichWithConceptNet}(V, D, Q)$ \Comment{Algorithm~\ref{alg:enrich}}
+\State $P \gets \textsc{ReasonSocialInteraction}(F, V, D, R, Q, O)$ \Comment{Algorithm~\ref{alg:reason}}
+\State \Return $(F, V, D, R, P)$ with the time taken by each stage
+\end{algorithmic}
+\end{algorithm}
+
+% -----------------------------------------
+\section{BACKEND AND USER INTERFACE}
+
+A FastAPI backend loads the Phase I pipeline once and keeps the model resident in memory. Each analysis runs as a background job, and the React frontend polls the job to show which module is currently running. The endpoints are listed in Appendix~\ref{app:api}.
+
+The interface accepts an uploaded image, a photo captured from the live camera or an uploaded video, which is analysed at its key moments, together with an optional question. Results are presented as prediction cards for the activity, relationship and intention, each with its confidence value and alternatives, followed by the generated explanation, the supporting ConceptNet evidence, the visual concepts identified by the VLM and the processing time. The full result can be downloaded as a JSON report, and a history strip gives access to earlier analyses from the same session. This interface is an operational demonstration of Phase I and is distinct from the Phase II explainability dashboard.
+
+% -----------------------------------------
+\section{PLANNED PHASE II EXTENSION}
+\label{sec:phase2plan}
+
+The Phase I data flow already carries what Phase II needs: the normalised tensor of Equation~\ref{eq:norm} for visual attribution, access to the model through \code{SmolVLMEngine}, the structured prediction targets, the textual rationale and the ConceptNet evidence. Phase II will add:
+
+\begin{itemize}
+\item \textbf{Visual explanation path:} Grad-CAM~\cite{selvaraju2017gradcam} maps for each predicted label, and extraction of the concepts present in the most activated regions, giving a visual concept set $\mathcal{V}$.
+\item \textbf{Textual explanation path:} extraction of the concepts mentioned in the generated explanation, giving a textual concept set $\mathcal{T}$.
+\item \textbf{Cross-modal consistency:} the Jaccard overlap of the two sets,
+  \begin{equation}
+    \mathrm{CMC} = \frac{|\mathcal{T} \cap \mathcal{V}|}{|\mathcal{T} \cup \mathcal{V}|}
+    \label{eq:cmc}
+  \end{equation}
+\item \textbf{Faithfulness evaluation:} the Insertion--Deletion metric~\cite{petsiuk2018rise} and the Pointing Game~\cite{zhang2018excitation}.
+\item \textbf{Explainability dashboard:} the input frame, the predicted interaction, the three labels and the consistency score in a single view.
+\end{itemize}

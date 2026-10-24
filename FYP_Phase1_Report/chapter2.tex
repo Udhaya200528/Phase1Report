@@ -1,0 +1,124 @@
+% Chapter 2
+
+\chapter{LITERATURE SURVEY} % Write in your own chapter title
+\label{ch:lit}
+
+This chapter reviews work in five areas that bear on the problem: models and datasets for visual commonsense reasoning, pre-trained and instruction-tuned vision-language models, reasoning with external knowledge, recognition of social relations, and the explanation and evaluation of multimodal models.
+
+\section{PAPERS RELATED TO THE PROBLEM IDENTIFIED}
+
+\subsection{Recognition to Cognition Network (R2C)}
+Zellers et al.~\cite{zellers2019vcr} introduced the VCR dataset together with a baseline model, the Recognition-to-Cognition network (R2C). R2C first links the words in the question and in each candidate response to the object regions detected in the image. It then interprets each response in light of the question and the image, and finally reasons over this combined representation to give every option a score. To build the dataset, the authors used a method they call \emph{Adversarial Matching}: the correct answer to one question is reused as a wrong option for another, so the distractors read naturally and stay on topic. Their results showed that even the best model was far behind humans, and VCR has since served as a benchmark for understanding at the level of cognition rather than recognition.
+
+\subsection{Tags and Attributes for VCR (TAB-VCR)}
+TAB-VCR, proposed by Lin et al.~\cite{lin2019tabvcr}, is a deliberately simpler baseline. It attaches attributes to each detected object. When the text mentions an object that was never tagged in the image, it adds a new tag for that object. Better grounding alone was enough to beat R2C with fewer parameters, which suggests that tying the text to the right image regions matters more than building a more complex model.
+
+\subsection{Heterogeneous Graph Learning (HGL)}
+Heterogeneous Graph Learning, from Yu et al.~\cite{yu2019hgl}, builds two graphs: one linking the visual content to the answers and one linking the question to the answers. A contextual voting module on top of these lets the model use visual context from distant parts of the image. The relations between visual and language elements are therefore modelled explicitly, but all of this reasoning stays inside the network and is never shown to the user.
+
+\subsection{VisualCOMET}
+VisualCOMET, introduced by Park et al.~\cite{park2020visualcomet}, is a dataset of over a million written commonsense inferences about still images. For each image it records what probably happened just before, what is likely to happen next and what the people in it intend. The task is to generate these inferences, not to pick from a list of options. That is much closer to the kind of explanation our system aims to give.
+
+\subsection{Pre-trained Vision-Language Transformers}
+ViLBERT~\cite{lu2019vilbert} split BERT into two streams, one for the image and one for the text, which exchange information through co-attention layers. It was pre-trained on image--caption pairs and then transferred to downstream tasks, VCR among them. VL-BERT~\cite{su2020vlbert} used a single-stream transformer over both modalities, and UNITER~\cite{chen2020uniter} learned a universal image--text representation from several large datasets with word--region alignment objectives, reaching state-of-the-art VCR accuracy at the time. MERLOT~\cite{zellers2021merlot} learned multimodal script knowledge from millions of YouTube videos and their transcripts, and transferred well to VCR. These models raised VCR accuracy considerably, but they are discriminative classifiers: they score given options and provide no explanation of their own beyond attention weights, which are not reliable indicators of the evidence used.
+
+\subsection{Generative Vision-Language Models}
+CLIP~\cite{radford2021clip} trained image and text encoders contrastively on 400 million image--text pairs, enabling zero-shot recognition from natural-language labels. BLIP-2~\cite{li2023blip2} connected a frozen image encoder to a frozen large language model through a lightweight Querying Transformer, and LLaVA~\cite{liu2023llava} connected a CLIP encoder to an instruction-tuned language model and trained it on machine-generated visual instruction data. These generative VLMs answer open questions and produce fluent free-form explanations, but the largest of them are expensive to run and their explanations can include details that are not present in the image.
+
+\subsection{SmolVLM: Compact Vision-Language Models}
+SmolVLM~\cite{marafioti2025smolvlm} goes in the opposite direction. Its models are kept small and compress the visual tokens heavily, so they can run on a device with limited memory. Its vision encoder is based on SigLIP~\cite{zhai2023siglip}. SmolVLM makes a VLM practical on a laptop, which is why it is used in this project, but on its own it is not adapted to commonsense reasoning about people.
+
+\subsection{Knowledge-Augmented Visual Reasoning}
+ConceptNet 5.5~\cite{speer2017conceptnet} is a large graph of general knowledge, and each of its edges can be read as a plain statement. OK-VQA~\cite{marino2019okvqa} is a VQA benchmark whose questions cannot be answered from the image alone and require external knowledge. KRISP~\cite{marino2021krisp} combined the implicit knowledge of a pre-trained transformer with symbolic knowledge from graphs, including ConceptNet, through a graph network, and showed that both kinds of knowledge contribute. The catch is that these systems usually turn the retrieved knowledge into hidden feature vectors. The user has no way to see which facts actually shaped the answer.
+
+\subsection{Social Relation Recognition}
+Sun et al.~\cite{sun2017domain} annotated social relations in the PIPA photo-album dataset following a domain-based theory from social psychology and predicted relations from attributes of the people such as age, gender, clothing and proximity. Li et al.~\cite{li2017dualglance} introduced the PISC dataset and a Dual-Glance model that first looks at the pair of people and then attends to contextual objects in the scene. These works show that context and person attributes determine the relationship, but they treat the relationship as a single classification target and do not reason jointly about the activity and the intention.
+
+\subsection{Parameter-Efficient Adaptation}
+LoRA~\cite{hu2022lora} adapts large models by training low-rank updates to frozen weight matrices, and QLoRA~\cite{dettmers2023qlora} combines LoRA with 4-bit quantisation of the frozen weights so that large models can be fine-tuned on a single GPU. These methods make it feasible to adapt a VLM to VCR on a single laboratory GPU.
+
+\subsection{Explanation Methods and Faithfulness Evaluation}
+Grad-CAM~\cite{selvaraju2017gradcam} produces class-specific saliency maps from the gradients flowing into the last convolutional or attention layer. RISE~\cite{petsiuk2018rise} explains black-box models by random masking and introduced the Insertion and Deletion metrics for evaluating saliency maps. The Pointing Game~\cite{zhang2018excitation} checks whether the maximum of a saliency map lies on the annotated object. e-ViL~\cite{kayser2021evil} provides a benchmark for natural-language explanations in vision-language tasks. Other recent studies ask whether the textual explanations a VLM gives are consistent with each other and faithful to how it actually used the image and the text~\cite{parcalabescu2025faithfulness}, and whether multimodal models answer the same question consistently across modalities~\cite{zhang2024crossmodal}.
+
+Table~\ref{tab:litsummary} lists the main works covered above, together with where each falls short for the problem set out in Chapter~\ref{ch:intro}.
+
+\begin{table}[h!]
+\centering
+\caption{Summary of Related Work}
+\label{tab:litsummary}
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|p{3.2cm}|p{4.3cm}|L|}
+\hline
+\textbf{Work} & \textbf{Approach} & \textbf{Limitation for this problem}\\ \hline
+R2C~\cite{zellers2019vcr} & Grounded attention over detections; VCR benchmark & Selects options; no evidence shown to the user \\ \hline
+TAB-VCR~\cite{lin2019tabvcr} & Attributes and new tags for better grounding & Same discriminative setting; no external knowledge \\ \hline
+HGL~\cite{yu2019hgl} & Heterogeneous vision/question--answer graphs & Graph reasoning is internal and not readable \\ \hline
+ViLBERT, VL-BERT, UNITER~\cite{lu2019vilbert,su2020vlbert,chen2020uniter} & Large-scale vision--language pre-training & High accuracy but opaque; heavy fine-tuning \\ \hline
+MERLOT~\cite{zellers2021merlot} & Script knowledge from video & Very large pre-training cost \\ \hline
+BLIP-2, LLaVA~\cite{li2023blip2,liu2023llava} & Generative VLMs with LLM backbones & Fluent but unverified explanations; large models \\ \hline
+SmolVLM~\cite{marafioti2025smolvlm} & Compact efficient VLM & Not adapted to social commonsense reasoning \\ \hline
+KRISP~\cite{marino2021krisp} & Implicit + symbolic (ConceptNet) knowledge & Knowledge hidden in features; not social-specific \\ \hline
+Dual-Glance, PIPA~\cite{li2017dualglance,sun2017domain} & Social relation classification with context & Relationship only; no activity or intention \\ \hline
+Grad-CAM, RISE, Pointing Game~\cite{selvaraju2017gradcam,petsiuk2018rise,zhang2018excitation} & Saliency maps and their evaluation & Not linked to textual explanations \\ \hline
+e-ViL~\cite{kayser2021evil} & Benchmark for natural-language explanations & Evaluates text alone, not cross-modal agreement \\ \hline
+\end{tabularx}
+\end{table}
+
+\section{RESEARCH GAPS}
+
+From this survey we identified six gaps.
+\begin{itemize}
+\item \textbf{G1. Accuracy without explanation:} The best-performing VCR models pick an answer and a rationale from the options they are given, but they never show which visual cues or which pieces of knowledge led to that choice.
+\item \textbf{G2. Explanations without verification:} Generative VLMs write fluent explanations, but nothing checks these against the image, so they sometimes mention things that are not there at all.
+\item \textbf{G3. Hidden knowledge:} Knowledge-augmented models absorb the facts they retrieve into hidden representations. As a result, the user cannot tell which facts mattered for a given prediction.
+\item \textbf{G4. Single-target social understanding:} Work on social relation recognition predicts the relationship as a label on its own. The activity, relationship and intention are not predicted together, so nothing keeps them consistent with each other.
+\item \textbf{G5. Separate evaluation of explanations:} Visual saliency maps and textual explanations are usually evaluated separately, and whether they agree is rarely measured.
+\item \textbf{G6. Computational cost:} Most high-performing systems depend on large models and data-centre hardware, which makes them impractical for lightweight or on-device use.
+\end{itemize}
+
+\section{RESEARCH OBJECTIVES}
+\label{sec:objectives}
+
+Table~\ref{tab:research_gaps_objectives} lists the objectives we set to close these gaps. Objectives 1 to 10 belong to Phase I and are covered in this report. Objectives 11 to 13 are left for Phase II.
+
+\begin{table}[h!]
+\centering
+\caption{{Identified Research Gaps and Proposed Research Objectives}}
+\label{tab:research_gaps_objectives}
+\renewcommand{\arraystretch}{1.4}
+\setlength{\tabcolsep}{4pt}
+\small
+\begin{tabularx}{\textwidth}{|p{3.4cm}|p{4.4cm}|L|}
+\hline
+\textbf{Category} & \textbf{Identified Gaps} & \textbf{Proposed Research Objectives} \\ \hline
+
+\textbf{Lightweight Visual Understanding} &
+Large models and data-centre hardware required (G6). &
+\textbf{1.} Build an OpenCV-based input and preprocessing pipeline that reliably handles still images, video frames and live-camera input.
+\newline \textbf{2.} Use the lightweight SmolVLM both to understand the image and to reason about it in language.
+\newline \textbf{3.} Fine-tune SmolVLM on VCR with LoRA, and pick the best checkpoint using held-out questions. \\ \hline
+
+\textbf{Inspectable Evidence} &
+Opaque predictions and hidden knowledge (G1, G3). &
+\textbf{4.} Extract the people, objects, actions, gestures, setting and spatial layout of a scene as structured concepts.
+\newline \textbf{5.} Add ConceptNet knowledge to these concepts and show it as evidence paths a person can read.
+\newline \textbf{6.} Build a reasoning module that combines the visual concepts, the commonsense knowledge and the VLM's draft answers. \\ \hline
+
+\textbf{Joint Social Understanding} &
+Relationship predicted in isolation (G4). &
+\textbf{7.} Predict activity, relationship and intention in sequence so that they are mutually consistent.
+\newline \textbf{8.} Provide confidence values, ranked alternatives and supporting evidence for each prediction. \\ \hline
+
+\textbf{Integration and Validation} &
+Research prototypes rarely usable end to end. &
+\textbf{9.} Integrate the modules into a reusable Python pipeline and a FastAPI--React demonstration interface.
+\newline \textbf{10.} Validate the modules with automated unit and end-to-end tests. \\ \hline
+
+\textbf{Verified Explanations (Phase II)} &
+Unverified explanations; separate evaluation of modalities (G2, G5). &
+\textbf{11.} Generate independent textual and visual (Grad-CAM) explanations for each prediction.
+\newline \textbf{12.} Measure cross-modal consistency and evaluate faithfulness with the Insertion--Deletion metric and the Pointing Game.
+\newline \textbf{13.} Present predictions, explanations and scores in an explainability dashboard. \\ \hline
+\end{tabularx}
+\end{table}

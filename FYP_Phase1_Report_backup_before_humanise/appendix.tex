@@ -1,0 +1,57 @@
+% Appendices (optional)
+
+\chapter{CONFIGURATION PARAMETERS}
+\label{app:config}
+
+Table~\ref{tab:params} lists the main parameters of the Phase I pipeline, set in \path{configs/default.yaml} unless stated otherwise.
+
+\begin{table}[h!]
+\centering
+\caption{Main Configuration Parameters of the Phase I Pipeline}
+\label{tab:params}
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|p{2.8cm}|p{5.4cm}|L|}
+\hline
+\textbf{Module} & \textbf{Parameter} & \textbf{Value}\\ \hline
+Preprocessing & Low-light trigger & brightness $< 60$ or contrast $< 25$\\ \hline
+              & Enhancement & CLAHE on L channel, gamma 0.8\\ \hline
+              & Blur threshold (Laplacian variance) & $< 60$\\ \hline
+              & Normalisation $\mu$, $\sigma$ & (0.5, 0.5, 0.5), (0.5, 0.5, 0.5)\\ \hline
+              & Video key moments (web interface) & up to 7\\ \hline
+VLM           & Model & \path{HuggingFaceTB/SmolVLM-Instruct}\\ \hline
+              & Decoding & greedy, repetition penalty\\ \hline
+              & Fine-tuned model & \path{configs/finetuned.yaml} (epoch-11 adapter, merged)\\ \hline
+ConceptNet    & Term salience & action 1.0, gesture 0.9, role 0.9, object 0.7, setting 0.6, caption 0.5\\ \hline
+              & Terms kept & top 20\\ \hline
+              & Facts kept & top 6 per term, top 40 overall\\ \hline
+              & Back-off penalty & salience $\times 0.5$\\ \hline
+              & Contradiction penalty & $-0.5$\\ \hline
+Reasoning     & Fusion weights & $w_{\text{VLM}} = 1.0$, $w_{\text{CN}} = 0.5$, $w_{\text{draft}} = 1.0$\\ \hline
+              & Commonsense temperature $T$ & 0.2\\ \hline
+              & Shortlist size & 8 labels\\ \hline
+              & Ambiguity margin & 0.15\\ \hline
+              & Maximum people count & 50\\ \hline
+\end{tabularx}
+\end{table}
+
+\chapter{API ENDPOINTS}
+\label{app:api}
+
+Table~\ref{tab:api} lists the FastAPI endpoints implemented for the Phase I demonstration.
+
+\begin{table}[h!]
+\centering
+\caption{FastAPI Endpoints Implemented for the Phase I Demonstration}
+\label{tab:api}
+\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{|p{5.4cm}|L|}
+\hline
+\textbf{Endpoint} & \textbf{Purpose}\\ \hline
+\code{GET /api/health} & Reports backend, model and ConceptNet status.\\ \hline
+\code{POST /api/analyze} & Accepts an image and an optional question and choices, and creates an analysis job.\\ \hline
+\code{POST /api/analyze-video} & Accepts a video, selects key moments and analyses each of them.\\ \hline
+\code{GET /api/jobs/\{job\_id\}} & Returns the job status, the active module, the completed stages and the final result.\\ \hline
+\end{tabularx}
+\end{table}

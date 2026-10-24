@@ -1,0 +1,37 @@
+%-----------------------------------------
+% Chapter 5 - Social Impact and Sustainability
+%-----------------------------------------
+
+\chapter{SOCIAL IMPACT AND SUSTAINABILITY}
+\label{ch:impact}
+
+\section{SOCIAL IMPACT}
+
+Systems that interpret social interactions in images are beginning to be used in everyday tools, and making such systems explainable and lightweight has several positive applications. For people who are blind or have low vision, a description that goes beyond listing objects -- ``a performer is entertaining an audience'', ``two people appear to be arguing'' -- conveys the social meaning of a scene. Because the system runs on modest hardware, it can be deployed on personal devices without sending images to a remote server. Showing the cues behind an interpretation (gestures, expressions, posture and setting) can also support people who find non-verbal cues hard to read, and can be used in training material that teaches how such cues are interpreted.
+
+A social or service robot has to tell whether people are busy, talking to each other or looking for help before it approaches them. If its reasoning can be inspected, developers can confirm that each decision was made for sound reasons. The same idea applies more widely. Every prediction our system makes comes with its evidence, the alternatives it considered and a confidence value, and unclear cases are flagged. Users can therefore see when the system is unsure and follow how it reached its answer. This encourages trust that matches how reliable the system actually is, rather than blind trust.
+
+\subsection{Ethical Considerations}
+
+Drawing conclusions about people's relationships and intentions from a picture is a sensitive task, and we see four main risks.
+\begin{itemize}
+\item \textbf{Privacy and identification:} Vision-language models can sometimes name well-known people. This happened in our own demonstration in Section~\ref{sec:demo}, where the scene description named the performer. Knowing who someone is adds nothing to the social-interaction task, so the prompts and an output filter should stop the system from naming anyone, and faces can be blurred before any result is stored.
+\item \textbf{Surveillance misuse:} Automatic inference of relationships and intentions could be misused to watch people without their consent. Our system is meant for assistive and research use with users who have agreed to it. It processes images on the local machine and, by default, does not keep them.
+\item \textbf{Bias and stereotyping:} VCR comes from movie scenes, and pre-trained VLMs carry over patterns from their training data. Both can hold stereotypes, for instance about who looks like a ``doctor'' and who looks like a ``patient'', or about roles tied to gender and age. Commercial vision systems have already been shown to perform unevenly across demographic groups~\cite{buolamwini2018gender}. Because our system shows its evidence and alternatives, such biases are easier to notice, and we plan to audit its predictions across demographic groups.
+\item \textbf{Over-reliance:} A wrong guess about someone's intention can mislead, especially when the system sounds confident. We show the ambiguity flag and the alternatives so that users read the output as one possible interpretation, not as a fact.
+\end{itemize}
+
+\section{SUSTAINABILITY}
+
+Several of our design choices keep the computational and environmental cost of the system low~\cite{strubell2019energy}. The 2.2-billion-parameter SmolVLM is far smaller than the large multimodal models commonly used for visual reasoning, so inference runs on a laptop GPU, Apple-silicon MPS or a CPU instead of a data-centre accelerator. LoRA trains only the low-rank adapters while the vision encoder, the connector and the language-model weights remain frozen; the complete training run was 1,500 optimiser steps on a single laboratory GPU. The selected adapter is merged into the base weights at load time, so the fine-tuned model costs no more to run than the base model.
+
+Sustainability is further improved by reuse and offline operation. Commonsense knowledge comes from an existing knowledge graph queried from a local database, and the label space is a configuration file, so new labels can be added without retraining the model. Because both ConceptNet and the model run locally, the system works without an internet connection. This reduces data transfer and removes any dependence on paid cloud services. For video, the frame sampler drops blurry frames and frames that repeat the previous scene, so the model only spends time on frames that add something new.
+
+\subsection{Relevance to the Sustainable Development Goals}
+
+Our project relates to three of the United Nations Sustainable Development Goals:
+\begin{itemize}
+\item \textbf{SDG 3 -- Good Health and Well-being:} helps people with visual impairment understand scenes, and can help people learn to read social cues.
+\item \textbf{SDG 9 -- Industry, Innovation and Infrastructure:} explainable AI that is affordable and runs on ordinary hardware.
+\item \textbf{SDG 10 -- Reduced Inequalities:} the system needs less powerful hardware, so more people can use multimodal AI, and its visible evidence makes biased predictions easier to spot and fix.
+\end{itemize}
